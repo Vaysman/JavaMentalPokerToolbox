@@ -1,3 +1,4 @@
 .gradle/
 out/
-
+reference/libTMCG-1.1.2/
+reference/gmp-6.0.0/
