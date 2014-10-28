@@ -9,6 +9,11 @@ public class SchindelhauerTMCG {
     }
 
     public Card createOpenCard(PublicKeyRing keyRing, int typeOfCard) {
-        return null;
+        return new Card() {
+            @Override
+            public String toString() {
+                return "dummy card";
+            }
+        };
     }
 }

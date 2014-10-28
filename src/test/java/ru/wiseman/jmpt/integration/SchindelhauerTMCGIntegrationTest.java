@@ -7,6 +7,8 @@ import ru.wiseman.jmpt.key.PublicKey;
 import ru.wiseman.jmpt.key.PublicKeyRing;
 import ru.wiseman.jmpt.key.PublicKeyRingImpl;
 
+import static org.junit.Assert.assertNotNull;
+
 public class SchindelhauerTMCGIntegrationTest {
 
 
@@ -22,6 +24,7 @@ public class SchindelhauerTMCGIntegrationTest {
         int typeOfCard = 1;
 
         Card card = toolbox.createOpenCard(keyRing, typeOfCard);
+        assertNotNull(card);
     }
 
     private PublicKey[] make_PlayersPublicKeys(int numberOfPalyers) {
