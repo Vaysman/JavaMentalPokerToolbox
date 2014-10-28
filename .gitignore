@@ -7,4 +7,5 @@ reference/gmp-6.0.0/
 .classpath
 .project
 .settings/
+build/
 
