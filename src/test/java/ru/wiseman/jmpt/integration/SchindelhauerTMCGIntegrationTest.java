@@ -27,15 +27,15 @@ public class SchindelhauerTMCGIntegrationTest {
         assertNotNull(card);
     }
 
-    private PublicKey[] make_PlayersPublicKeys(int numberOfPalyers) {
-        return new PublicKey[numberOfPalyers];
-    }
-
     private void init_KeyRingWithPlayersKeys(PublicKeyRing keyRing, PublicKey[] playerPublicKeys) {
         keyRing.clear();
         for (int i = 0; i < playerPublicKeys.length; i++) {
             keyRing.add(playerPublicKeys[i]);
         }
+    }
+
+    private PublicKey[] make_PlayersPublicKeys(int numberOfPalyers) {
+        return new PublicKey[numberOfPalyers];
     }
 
     private PublicKeyRing make_PublicKeyRing() {

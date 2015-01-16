@@ -1,3 +1,4 @@
 package ru.wiseman.jmpt.card;
 
-public interface Card {}
+public interface Card {
+}
