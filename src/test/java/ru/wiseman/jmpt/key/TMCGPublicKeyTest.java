@@ -17,7 +17,6 @@ public class TMCGPublicKeyTest {
         TMCGSecretKey secretKeyMock = mock(TMCGSecretKey.class);
         when(secretKeyMock.getPublicModulus()).thenReturn(BigInteger.ONE);
 
-
         TMCGPublicKey publicKey = TMCGPublicKey.importKey(STRINGIGIED_PUBLIC_KEY);
 
         assertNotNull(publicKey);

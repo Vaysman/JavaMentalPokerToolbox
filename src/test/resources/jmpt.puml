@@ -1,0 +1,68 @@
+@startuml
+
+class TMCGPublicKey {
+    +String name
+    +String email
+    +String type
+    +String nizk
+    +String sig
+    +BigInteger m
+    +BigInteger y
+    --
+    +TMCGPublicKey()
+    +TMCGPublicKey(TMCGPublicKey key)
+    +TMCGPublicKey(TMCGSecretKey key)
+    +TMCGPublicKey import(String s)
+    ..
+    +boolean check()
+    +String fingerprint()
+    +String keyid(int size)
+    +String selfid()
+    +int keyid_size(String key)
+    +String sigid(String sign)
+    +String encrypt(String data)
+    +boolean verify(String data, String sign)
+}
+
+class TMCGSecretKey {
+    +String name
+    +String email
+    +String type
+    +String nizk
+    +String sig
+    +BigInteger m
+    +BigInteger y
+    +BigInteger p
+    +BigInteger q
+    .. non-persistent members ..
+    +BigInteger y1
+    +BigInteger m1pq
+    +BigInteger gcdext_up
+    +BigInteger gcdext_vq
+    +BigInteger pa1d4
+    +BigInteger qa1d4
+    +int ret
+    --
+    +TMCGSecretKey()
+    +TMCGSecretKey(String name, String email,
+                   int keySize, boolean nizk)
+    +TMCGSecretKey(String s)
+    ..
+    +void generate(int keySize, boolean nizk)
+    +void precompute()
+    +boolean check()
+    +String fingerprint()
+    +String selfid()
+    +String keyid(int size)
+    +int keyid_size(String s)
+    +String sigid(String s)
+    +boolean import(String s)
+    +boolean decrypt(String value, String s)
+    +String sign(String data)
+    +String encrypt(String data)
+    +boolean verify(String data, String s)
+}
+
+TMCGPublicKey - TMCGSecretKey
+
+@enduml
