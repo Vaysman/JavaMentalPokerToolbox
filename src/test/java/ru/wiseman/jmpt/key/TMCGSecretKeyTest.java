@@ -113,5 +113,35 @@ public class TMCGSecretKeyTest {
 
         assertEquals(expected, Utils.mpzImport(data).toString(36));
     }
+
+    @Test
+    public void gcdExt() throws Exception{
+        BigInteger expectedGcd = BigInteger.valueOf(6);
+        BigInteger expectedX = BigInteger.valueOf(3);
+        BigInteger expectedY = BigInteger.valueOf(-1);
+        BigInteger a = BigInteger.valueOf(12);
+        BigInteger b = BigInteger.valueOf(30);
+
+        BigInteger[] bezout = Utils.gcdExt(a, b);
+        assertEquals(expectedGcd, bezout[0]);
+        assertEquals(expectedX, bezout[1]);
+        assertEquals(expectedY, bezout[2]);
+
+    }
+
+    @Test
+    public void gcdEx2() throws Exception{
+        BigInteger expectedGcd = BigInteger.ONE;
+        BigInteger expectedX = BigInteger.valueOf(-98);
+        BigInteger expectedY = BigInteger.valueOf(99);
+        BigInteger a = BigInteger.valueOf(991);
+        BigInteger b = BigInteger.valueOf(981);
+
+        BigInteger[] bezout = Utils.gcdExt(a, b);
+        assertEquals(expectedGcd, bezout[0]);
+        assertEquals(expectedX, bezout[1]);
+        assertEquals(expectedY, bezout[2]);
+
+    }
 }
 

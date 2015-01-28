@@ -22,7 +22,7 @@ public class Utils {
     }
 
     private static void setBcProvider() {
-        if(Security.getProvider("BC") == null) {
+        if (Security.getProvider("BC") == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
     }
@@ -47,8 +47,9 @@ public class Utils {
         return output;
     }
 
-    public static BigInteger sqrtMod() {
+    public static BigInteger sqrtMod(BigInteger p, BigInteger q) {
         BigInteger g, u, v;
+        BigInteger[] bezoutCoefficient = gcdExt(p, q);
 /*
         mpz_t g, u, v;
 	mpz_init(g), mpz_init(u), mpz_init(v);
@@ -98,9 +99,56 @@ public class Utils {
     // error, return zero root
     mpz_set_ui(root, 0L);
          */
+        return BigInteger.ONE;
     }
 
     public static BigInteger mpzImport(byte[] data) {
         return new BigInteger(1, data);
+    }
+
+    public static BigInteger[] gcdExt(BigInteger a, BigInteger b) {
+        BigInteger[] result = new BigInteger[3];
+        boolean swapXY = false;
+
+        if (a.compareTo(b) < 0) {
+            BigInteger t = a;
+            a = b;
+            b = t;
+            swapXY = true;
+        }
+
+        if (b.equals(BigInteger.ZERO)) {
+            result[0] = a;
+            result[1] = BigInteger.ONE;
+            result[2] = BigInteger.ZERO;
+        }
+
+        BigInteger x1 = BigInteger.ZERO;
+        BigInteger x2 = BigInteger.ONE;
+        BigInteger y1 = BigInteger.ONE;
+        BigInteger y2 = BigInteger.ZERO;
+
+        while (b.compareTo(BigInteger.ZERO) > 0) {
+            BigInteger[] qr = a.divideAndRemainder(b);
+            result[1] = x2.subtract(qr[0].multiply(x1));
+            result[2] = y2.subtract(qr[0].multiply(y1));
+            a = b;
+            b = qr[1];
+            x2 = x1;
+            x1 = result[1];
+            y2 = y1;
+            y1 = result[2];
+        }
+
+        result[0] = a;
+        result[1] = x2;
+        result[2] = y2;
+
+        if(swapXY) {
+            BigInteger t = result[1];
+            result[1] = result[2];
+            result[2] = t;
+        }
+        return result;
     }
 }
