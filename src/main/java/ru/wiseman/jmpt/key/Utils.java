@@ -1,13 +1,19 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 
+import javax.swing.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Random;
 
 public class Utils {
+    private static Random random = new SecureRandom();
+
     public static byte[] h(String s) {
         setBcProvider();
         byte[] result = null;
@@ -48,8 +54,17 @@ public class Utils {
     }
 
     public static BigInteger sqrtMod(BigInteger p, BigInteger q) {
+        BigInteger result;
         BigInteger g, u, v;
         BigInteger[] bezoutCoefficient = gcdExt(p, q);
+        g = bezoutCoefficient[0];
+        u = bezoutCoefficient[1];
+        v = bezoutCoefficient[2];
+        if(g.equals(BigInteger.ONE)) {
+            BigInteger rootP, rootQ, root1, root2, root3, root4;
+                    // single square roots
+
+        }
 /*
         mpz_t g, u, v;
 	mpz_init(g), mpz_init(u), mpz_init(v);
@@ -102,53 +117,102 @@ public class Utils {
         return BigInteger.ONE;
     }
 
+    public static boolean mpz_qrmn_p(BigInteger foo, BigInteger p, BigInteger q, BigInteger m) {
+        return IntegerFunctions.jacobi(foo, p) == 1 && IntegerFunctions.jacobi(foo, q) == 1;
+    }
+
     public static BigInteger mpzImport(byte[] data) {
         return new BigInteger(1, data);
     }
 
-    public static BigInteger[] gcdExt(BigInteger a, BigInteger b) {
-        BigInteger[] result = new BigInteger[3];
-        boolean swapXY = false;
+    public static BigInteger[] gcdExt(BigInteger firstNumber, BigInteger secondNumber) {
+        class Pair {
+            BigInteger number;
+            BigInteger coefficient;
 
-        if (a.compareTo(b) < 0) {
-            BigInteger t = a;
+            public Pair(BigInteger number) {
+                this.number = number;
+            }
+
+            public boolean mustSwap(Pair other) {
+                return number.compareTo(other.number) < 0;
+            }
+        }
+
+        Pair a = new Pair(firstNumber);
+        Pair b = new Pair(secondNumber);
+        BigInteger gcd;
+        boolean swap;
+
+        if (swap = a.mustSwap(b)) {
+            Pair t = a;
             a = b;
             b = t;
-            swapXY = true;
         }
 
-        if (b.equals(BigInteger.ZERO)) {
-            result[0] = a;
-            result[1] = BigInteger.ONE;
-            result[2] = BigInteger.ZERO;
+        if (b.number.equals(BigInteger.ZERO)) {
+            BigInteger[] result = new BigInteger[3];
+            gcd = a.number;
+            a.coefficient = BigInteger.ONE;
+            b.coefficient = BigInteger.ZERO;
+        } else {
+            BigInteger x1 = BigInteger.ZERO;
+            BigInteger x2 = BigInteger.ONE;
+            BigInteger y1 = BigInteger.ONE;
+            BigInteger y2 = BigInteger.ZERO;
+            BigInteger x, y;
+
+            while (b.number.compareTo(BigInteger.ZERO) > 0) {
+                BigInteger[] qr = a.number.divideAndRemainder(b.number);
+
+                x = x2.subtract(qr[0].multiply(x1));
+                y = y2.subtract(qr[0].multiply(y1));
+                a.number = b.number;
+                b.number = qr[1];
+                x2 = x1;
+                x1 = x;
+                y2 = y1;
+                y1 = y;
+            }
+
+            gcd = a.number;
+            a.coefficient = x2;
+            b.coefficient = y2;
         }
 
-        BigInteger x1 = BigInteger.ZERO;
-        BigInteger x2 = BigInteger.ONE;
-        BigInteger y1 = BigInteger.ONE;
-        BigInteger y2 = BigInteger.ZERO;
-
-        while (b.compareTo(BigInteger.ZERO) > 0) {
-            BigInteger[] qr = a.divideAndRemainder(b);
-            result[1] = x2.subtract(qr[0].multiply(x1));
-            result[2] = y2.subtract(qr[0].multiply(y1));
+        if (swap) {
+            Pair t = a;
             a = b;
-            b = qr[1];
-            x2 = x1;
-            x1 = result[1];
-            y2 = y1;
-            y1 = result[2];
+            b = t;
         }
 
-        result[0] = a;
-        result[1] = x2;
-        result[2] = y2;
+        return new BigInteger[]{ gcd, a.coefficient, b.coefficient };
+    }
 
-        if(swapXY) {
-            BigInteger t = result[1];
-            result[1] = result[2];
-            result[2] = t;
+    public static BigInteger sqrtModR(BigInteger foo, BigInteger p, BigInteger q, BigInteger m) {
+        BigInteger result;
+        BigInteger g, u, v;
+        BigInteger[] bezoutCoefficient = gcdExt(p, q);
+        g = bezoutCoefficient[0];
+        u = bezoutCoefficient[1];
+        v = bezoutCoefficient[2];
+        if(g.equals(BigInteger.ONE)) {
+            BigInteger rootP, rootQ, root1, root2, root3, root4;
+            // single square roots
+//            rootP =
         }
+
+        return null;
+    }
+
+    // prime congruent 3 modulo 4
+    public static BigInteger mpz_sprime3mod4(int size, int iterations) {
+        BigInteger result;
+        do {
+            result = BigInteger.probablePrime(size, random);
+        } while (!result.mod(BigInteger.valueOf(4)).equals(BigInteger.valueOf(3)));
+
         return result;
     }
+
 }

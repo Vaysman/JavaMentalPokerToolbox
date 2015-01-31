@@ -49,14 +49,14 @@ public class TMCGSecretKey implements SecretKey {
         String type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
         do {
             // choose a random safe prime p, but with fixed size (n/2 + 1) bit
-            p = mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+            p = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
             assert !p.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
 
             // choose a random safe prime q, but with fixed size (n/2 + 1) bit
             // and p \not\equiv q (mod 8)
             foo = BIG_INTEGER_8;
             do {
-                q = mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+                q = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
             } while (p.mod(foo).equals(q));
             assert !q.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
             assert(!p.mod(foo).equals(q));
@@ -130,10 +130,10 @@ public class TMCGSecretKey implements SecretKey {
             } while (bar.compareTo(BigInteger.ONE) != 0);
 
             // compute square root of +-foo or +-2foo mod m
-            if(IntegerFunctions.jacobi(foo, p) == 1 && IntegerFunctions.jacobi(foo, q) == 1) {
-
+            if(Utils.mpz_qrmn_p(foo, p, q, m)) {
+                bar = Utils.sqrtModR(foo, p, q, m);
             }
-
+            nizk2  = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
         }
 /*
 
@@ -231,16 +231,6 @@ public class TMCGSecretKey implements SecretKey {
     // quadratic residiosity mod n, with n = p * q
     private boolean mpz_qrmn_p(BigInteger y, BigInteger p, BigInteger q, BigInteger m) {
         return IntegerFunctions.jacobi(y, p) == 1 && IntegerFunctions.jacobi(y, q) == 1;
-    }
-
-    // prime congruent 3 modulo 4
-    public BigInteger mpz_sprime3mod4(int size, int iterations) {
-        BigInteger result = null;
-        do {
-            result = BigInteger.probablePrime(size - 1, random);
-        } while (!result.mod(BigInteger.valueOf(4)).equals(BigInteger.valueOf(3)));
-
-        return result;
     }
 
     public static TMCGSecretKey importKey(String key) {
