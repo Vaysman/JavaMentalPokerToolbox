@@ -67,6 +67,10 @@ public class TMCGSecretKeyTest {
 //        assertFalse(check);
     }
 
+    @Test
+    public void generate_default_itWorks() throws Exception {
+        TMCGSecretKey secretKey = new TMCGSecretKey("Name", "a@a.com", 128, true);
 
+    }
 }
 

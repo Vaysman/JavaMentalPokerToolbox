@@ -2,6 +2,7 @@ package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -44,7 +45,7 @@ public class TMCGSecretKey implements SecretKey {
 
     private void generate(int keySize, boolean appendNizkProf) {
         BigInteger foo, bar;
-        int size = (keySize / 2) + 1;
+        final int size = (keySize / 2) + 1;
 
         String type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
         do {
@@ -91,7 +92,7 @@ public class TMCGSecretKey implements SecretKey {
         String input = m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
         String nizk2 = "nzk^" + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 + "^";
 //        input << m << "^" << y, nizk2 << "nzk^";
-        int mnsize = m.bitLength() / 8;
+        final int mnsize = m.bitLength() / 8;
 //        char *mn = new char[mnsize];
         // STAGE1: m Square Free
         // soundness error probability \le d^{-TMCG_KEY_NIZK_STAGE1}
@@ -99,7 +100,7 @@ public class TMCGSecretKey implements SecretKey {
         for(int stage1 =0 ; stage1 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 && appendNizkProf ; stage1++) {
             // common random number foo \in Z^*_m (build from hash function g)
             do {
-                byte[] mn = Utils.g(input);
+                byte[] mn = Utils.g(input, mnsize);
                 byte[] foo_data = new byte[mnsize];
                 System.arraycopy(mn, 0, foo_data, 0, mnsize);
                 foo = Utils.mpzImport(foo_data);
@@ -120,7 +121,7 @@ public class TMCGSecretKey implements SecretKey {
         for (int stage2 = 0; (stage2 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) && appendNizkProf; stage2++) {
             // common random number foo \in Z^*_m (build from hash function g)
             do {
-                byte[] mn = Utils.g(input);
+                byte[] mn = Utils.g(input, mnsize);
                 byte[] foo_data = new byte[mnsize];
                 System.arraycopy(mn, 0, foo_data, 0, mnsize);
                 foo = Utils.mpzImport(foo_data);
@@ -131,101 +132,81 @@ public class TMCGSecretKey implements SecretKey {
 
             // compute square root of +-foo or +-2foo mod m
             if(Utils.mpz_qrmn_p(foo, p, q, m)) {
-                bar = Utils.sqrtModR(foo, p, q, m);
+                bar = IntegerFunctions.ressol(foo, m);
+            } else {
+                foo = foo.negate();
+                if(Utils.mpz_qrmn_p(foo, p, q, m)) {
+                    bar = IntegerFunctions.ressol(foo, m);
+                } else {
+                    foo = foo.shiftLeft(1);
+                    if(Utils.mpz_qrmn_p(foo, p, q, m)) {
+                        bar = IntegerFunctions.ressol(foo, m);
+                    } else {
+                        foo = foo.negate();
+                        if(Utils.mpz_qrmn_p(foo, p, q, m)) {
+                            bar = IntegerFunctions.ressol(foo, m);
+                        } else {
+                            bar = BigInteger.ZERO;
+                        }
+                    }
+                }
             }
+            // update NIZK-proof stream
             nizk2  = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
         }
-/*
 
-	// STAGE2: m Prime Power Product
-	// soundness error probability \le 2^{-TMCG_KEY_NIZK_STAGE2}
-	nizk2 << TMCG_KEY_NIZK_STAGE2 << "^";
-	for (size_t stage2 = 0; (stage2 < TMCG_KEY_NIZK_STAGE2) && nizk_key; stage2++)
-	{
-		// common random number foo \in Z^*_m (build from hash function g)
-		do
-		{
-			g(mn, mnsize, (input.str()).c_str(), (input.str()).length());
-			mpz_import(foo, 1, -1, mnsize, 1, 0, mn);
-			mpz_mod(foo, foo, m);
-			mpz_gcd(bar, foo, m);
-			input << foo;
-		}
-		while (mpz_cmp_ui(bar, 1L));
+        // STAGE3: y \in NQR^\circ_m
+        // soundness error probability \le 2^{-TMCG_KEY_NIZK_STAGE3}
+        nizk2 = nizk2 + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE3 + "^";
+        for (int stage3 = 0; (stage3 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) && appendNizkProf; stage3++) {
+            // common random number foo \in Z^\circ_m (build from hash function g)
+            do {
+                byte[] mn = Utils.g(input, mnsize);
+                byte[] foo_data = new byte[mnsize];
+                System.arraycopy(mn, 0, foo_data, 0, mnsize);
+                foo = Utils.mpzImport(foo_data);
+                foo = foo.mod(m);
+                input = input + foo.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+            } while (IntegerFunctions.jacobi(foo, m) != 1);
+            // compute square root
+            if(!Utils.mpz_qrmn_p(foo, p, q, m)) {
+                foo = foo.multiply(y).mod(m);
+            }
+            bar = IntegerFunctions.ressol(foo, m);
+            nizk2  = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
+        }
 
-		// compute square root of +-foo or +-2foo mod m
-		if (mpz_qrmn_p(foo, p, q, m))
-			mpz_sqrtmn_r(bar, foo, p, q, m);
-		else
-		{
-			mpz_neg(foo, foo);
-			if (mpz_qrmn_p(foo, p, q, m))
-				mpz_sqrtmn_r(bar, foo, p, q, m);
-			else
-			{
-				mpz_mul_2exp(foo, foo, 1L);
-				if (mpz_qrmn_p(foo, p, q, m))
-					mpz_sqrtmn_r(bar, foo, p, q, m);
-				else
-				{
-					mpz_neg(foo, foo);
-					if (mpz_qrmn_p(foo, p, q, m))
-						mpz_sqrtmn_r(bar, foo, p, q, m);
-					else
-						mpz_set_ui(bar, 0L);
-				}
-			}
-		}
+        nizk = nizk2.toString();
+        // compute self-signature
+        String data;
+        String repl;
+        data = name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" +
+                y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
+        sig = sign(data);
 
-		// update NIZK-proof stream
-		nizk2 << bar << "^";
-	}
-
-	// STAGE3: y \in NQR^\circ_m
-	// soundness error probability \le 2^{-TMCG_KEY_NIZK_STAGE3}
-	nizk2 << TMCG_KEY_NIZK_STAGE3 << "^";
-	for (size_t stage3 = 0; (stage3 < TMCG_KEY_NIZK_STAGE3) && nizk_key; stage3++)
-	{
-		// common random number foo \in Z^\circ_m (build from hash function g)
-		do
-		{
-			g(mn, mnsize, (input.str()).c_str(), (input.str()).length());
-			mpz_import(foo, 1, -1, mnsize, 1, 0, mn);
-			mpz_mod(foo, foo, m);
-			input << foo;
-		}
-		while (mpz_jacobi(foo, m) != 1);
-
-		// compute square root
-		if (!mpz_qrmn_p(foo, p, q, m))
-		{
-			mpz_mul(foo, foo, y);
-			mpz_mod(foo, foo, m);
-		}
-		mpz_sqrtmn_r(bar, foo, p, q, m);
-
-		// update NIZK-proof stream
-		nizk2 << bar << "^";
-	}
-
-	nizk = nizk2.str();
-	delete [] mn;
-	mpz_clear(foo), mpz_clear(bar);
-
-	// compute self-signature
-	std::ostringstream data, repl;
-	data << name << "|" << email << "|" << type << "|" <<
-		m << "|" << y << "|" << nizk << "|";
-	sig = sign(data.str());
-	repl << "ID" << TMCG_KEYID_SIZE << "^";
-	sig.replace(sig.find(repl.str()),
-		(repl.str()).length() + TMCG_KEYID_SIZE, keyid());
-
-         */
+        repl = "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE +"^";
+        int index = sig.indexOf(repl);
+        int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
+        sig = sig.substring(0, index) + keyid() + sig.substring(index+replsize, sig.length());
     }
 
-    private void precompute() {
+    private String keyid() {
+        return makePublicKey(this).keyid();
+    }
 
+    // pre-compute non-persistent values
+    private void precompute() {
+        BigInteger foo;
+
+        y1 = y.modInverse(m);
+        foo = m.subtract(p).subtract(q).add(BigInteger.ONE);
+        m1pq = m.modInverse(foo);
+        BigInteger[] gcdext = IntegerFunctions.extgcd(p, q);
+        assert gcdext[0].compareTo(BigInteger.ONE) == 0;
+        gcdext[1] = gcdext[1].multiply(p);
+        gcdext[2] = gcdext[2].multiply(q);
+        pa1d4 = p.add(BigInteger.ONE).shiftRight(2);
+        qa1d4 = q.add(BigInteger.ONE).shiftRight(2);
     }
 
     // quadratic residiosity mod n, with n = p * q
@@ -234,51 +215,55 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     public static TMCGSecretKey importKey(String key) {
-        return null;
+        throw new NotImplementedException();
+//        return null;
     }
 
     @Override
     public boolean check() {
-        TMCGPublicKey publicKey = makePublicKey(this);
-        return publicKey.check();
+        return makePublicKey(this).check();
     }
 
     @Override
-    public byte[] encrypt(byte[] clearText) {
-        return new byte[0];
+    public String encrypt(String clearText) {
+        return makePublicKey(this).encrypt(clearText);
     }
 
     @Override
     public String fingerprint() {
-        return null;
+        return makePublicKey(this).fingerprint();
     }
 
     @Override
     public BigInteger getPublicModulus() {
-        return null;
+        throw new NotImplementedException();
+//        return null;
     }
 
     @Override
     public BigInteger getPublicNqr() {
-        return null;
+        throw new NotImplementedException();
+//        return null;
     }
 
     @Override
-    public boolean verify(String string, String signature) {
-        return false;
+    public boolean verify(String data, String signature) {
+        return makePublicKey(this).verify(data, signature);
     }
 
     @Override
     public byte[] decrypt(byte[] encryptedText) {
-        return new byte[0];
+        throw new NotImplementedException();
+//        return new byte[0];
     }
 
     @Override
     public String sign(String toSign) {
-        return null;
+        throw new NotImplementedException();
+//        return null;
     }
 
-    TMCGPublicKey makePublicKey(TMCGSecretKey secretKey) {
+    private TMCGPublicKey makePublicKey(TMCGSecretKey secretKey) {
         return new TMCGPublicKey(secretKey);
     }
 }

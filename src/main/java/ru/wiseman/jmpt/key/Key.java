@@ -5,7 +5,7 @@ import java.math.BigInteger;
 public interface Key {
     public boolean check();
 
-    public byte[] encrypt(byte[] clearText);
+    public String encrypt(String clearText);
 
     public String fingerprint();
 

@@ -93,4 +93,21 @@ public class UtilsTest {
         assertEquals(expectedGcd, bezout[0]);
         assertEquals(expectedGcd, bezout[1].multiply(a).add(bezout[2].multiply(b)));
     }
+
+    @Test
+    public void mpz_sqrtmp_r() throws  Exception {
+        BigInteger actual = Utils.mpz_sqrtmp_r(BigInteger.valueOf(2), BigInteger.valueOf(7));
+        BigInteger expected = BigInteger.valueOf(4);
+        assertEquals(expected, actual);
+
+        actual = Utils.mpz_sqrtmp_r(BigInteger.valueOf(4), BigInteger.valueOf(11));
+        expected = BigInteger.valueOf(9);
+        assertEquals(expected, actual);
+
+        actual = Utils.mpz_sqrtmp_r(BigInteger.ZERO, BigInteger.valueOf(11));
+        expected = BigInteger.ZERO;
+        assertEquals(expected, actual);
+
+
+    }
 }

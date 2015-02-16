@@ -1,5 +1,6 @@
 package ru.wiseman.jmpt.key;
 
+import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,7 +34,7 @@ public class UtilsGcdExtTest {
 
     @Test
     public void gcdExt() throws Exception {
-        BigInteger[] bezout = Utils.gcdExt(a, b);
+        BigInteger[] bezout = IntegerFunctions.extgcd(a, b);//Utils.gcdExt(a, b);
         assertEquals(expectedGcd, bezout[0]);
         assertEquals(expectedGcd, a.multiply(bezout[1]).add(b.multiply(bezout[2])));
     }

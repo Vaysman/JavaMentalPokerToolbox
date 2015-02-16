@@ -74,8 +74,8 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     @Override
-    public byte[] encrypt(byte[] clearText) {
-        return new byte[0];
+    public String encrypt(String clearText) {
+        return null;
     }
 
     @Override
@@ -96,5 +96,9 @@ public class TMCGPublicKey implements PublicKey {
     @Override
     public boolean verify(String string, String signature) {
         return false;
+    }
+
+    public String keyid() {
+        return null;
     }
 }

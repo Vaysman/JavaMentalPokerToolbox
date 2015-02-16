@@ -67,4 +67,15 @@ int main() {
 
 	std::cout << "\n";
 
+	std::cout << "mpz_get_ui\n***********\n";
+	mpz_set_ui(foo, 567L);
+	std::cout << foo << "\n";
+	std::cout << mpz_get_ui(foo) << "\n";
+
+	std::cout << "mpz_sqrtmn_r\n***********\n";
+	mpz_set_ui(foo, 567L);
+	std::cout << foo << "\n";
+	std::cout << mpz_get_ui(foo) << "\n";
+
+
 }
