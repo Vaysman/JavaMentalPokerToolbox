@@ -39,39 +39,56 @@ public class TMCGSecretKey implements SecretKey {
         generate(keySize, appendNizkProf);
     }
 
+    public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf, BigInteger p, BigInteger q) {
+        this();
+        this.name = name;
+        this.email = email;
+        this.q = q;
+        this.p = p;
+        generate(keySize, appendNizkProf, true);
+    }
+
     public TMCGSecretKey() {
         random = new SecureRandom();
     }
 
+
     private void generate(int keySize, boolean appendNizkProf) {
+        generate(keySize, appendNizkProf, false);
+    }
+
+    private void generate(int keySize, boolean appendNizkProf, boolean precomp) {
         BigInteger foo, bar;
         final int size = (keySize / 2) + 1;
 
         String type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
-        do {
-            // choose a random safe prime p, but with fixed size (n/2 + 1) bit
-            p = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
-            assert !p.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
-
-            // choose a random safe prime q, but with fixed size (n/2 + 1) bit
-            // and p \not\equiv q (mod 8)
-            foo = BIG_INTEGER_8;
+        if(!precomp) {
             do {
-                q = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
-            } while (p.mod(foo).equals(q));
-            assert !q.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
-            assert(!p.mod(foo).equals(q));
+                // choose a random safe prime p, but with fixed size (n/2 + 1) bit
+                p = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+                assert !p.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
 
-            // compute modulus: m = p \cdot q
+                // choose a random safe prime q, but with fixed size (n/2 + 1) bit
+                // and p \not\equiv q (mod 8)
+                foo = BIG_INTEGER_8;
+                do {
+                    q = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+                } while (p.mod(foo).equals(q));
+                assert !q.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
+                assert (!p.mod(foo).equals(q));
+
+                // compute modulus: m = p \cdot q
+                m = p.multiply(q);
+
+                // compute upper bound for SAEP, i.e. 2^{n+1} + 2^n
+                foo = BigInteger.ONE;
+                foo = foo.multiply(BIG_INTEGER_2.pow(keySize));
+                bar = foo.multiply(BIG_INTEGER_2);
+                bar = foo.add(bar);
+            } while (m.bitLength() < keySize + 1 || m.compareTo(bar) >= 0);
+        } else {
             m = p.multiply(q);
-
-            // compute upper bound for SAEP, i.e. 2^{n+1} + 2^n
-            foo = BigInteger.ONE;
-            foo = foo.multiply(BIG_INTEGER_2.pow(keySize));
-            bar = foo.multiply(BIG_INTEGER_2);
-            bar = foo.add(bar);
-        } while (m.bitLength() < keySize + 1 || m.compareTo(bar) >= 0);
-
+        }
         // choose a small $y \in NQR^\circ_m$ for fast TMCG encoding
         y = BigInteger.ONE;
         do {
@@ -88,15 +105,12 @@ public class TMCGSecretKey implements SecretKey {
 
         // STAGE1/2: m = p^i * q^j, p and q prime
         // STAGE3: y \in NQR^\circ_m
-//        std::ostringstream nizk2, input;
         String input = m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
         String nizk2 = "nzk^" + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 + "^";
-//        input << m << "^" << y, nizk2 << "nzk^";
         final int mnsize = m.bitLength() / 8;
-//        char *mn = new char[mnsize];
+
         // STAGE1: m Square Free
         // soundness error probability \le d^{-TMCG_KEY_NIZK_STAGE1}
-//        nizk2 << TMCG_KEY_NIZK_STAGE1 << "^";
         for(int stage1 =0 ; stage1 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 && appendNizkProf ; stage1++) {
             // common random number foo \in Z^*_m (build from hash function g)
             do {
@@ -132,19 +146,19 @@ public class TMCGSecretKey implements SecretKey {
 
             // compute square root of +-foo or +-2foo mod m
             if(Utils.mpz_qrmn_p(foo, p, q, m)) {
-                bar = IntegerFunctions.ressol(foo, m);
+                bar = Utils.mpz_sqrtmn_r(foo, p, q);
             } else {
                 foo = foo.negate();
                 if(Utils.mpz_qrmn_p(foo, p, q, m)) {
-                    bar = IntegerFunctions.ressol(foo, m);
+                    bar = Utils.mpz_sqrtmn_r(foo, p, q);
                 } else {
                     foo = foo.shiftLeft(1);
                     if(Utils.mpz_qrmn_p(foo, p, q, m)) {
-                        bar = IntegerFunctions.ressol(foo, m);
+                        bar = Utils.mpz_sqrtmn_r(foo, p, q);
                     } else {
                         foo = foo.negate();
                         if(Utils.mpz_qrmn_p(foo, p, q, m)) {
-                            bar = IntegerFunctions.ressol(foo, m);
+                            bar = Utils.mpz_sqrtmn_r(foo, p, q);
                         } else {
                             bar = BigInteger.ZERO;
                         }
@@ -172,7 +186,7 @@ public class TMCGSecretKey implements SecretKey {
             if(!Utils.mpz_qrmn_p(foo, p, q, m)) {
                 foo = foo.multiply(y).mod(m);
             }
-            bar = IntegerFunctions.ressol(foo, m);
+            bar = Utils.mpz_sqrtmn_r(foo, p, q);
             nizk2  = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
         }
 
@@ -202,9 +216,9 @@ public class TMCGSecretKey implements SecretKey {
         foo = m.subtract(p).subtract(q).add(BigInteger.ONE);
         m1pq = m.modInverse(foo);
         BigInteger[] gcdext = IntegerFunctions.extgcd(p, q);
-        assert gcdext[0].compareTo(BigInteger.ONE) == 0;
-        gcdext[1] = gcdext[1].multiply(p);
-        gcdext[2] = gcdext[2].multiply(q);
+        assert gcdext[0].equals(BigInteger.ONE);
+        gcdext_up = gcdext[1].multiply(p);
+        gcdext_vq = gcdext[2].multiply(q);
         pa1d4 = p.add(BigInteger.ONE).shiftRight(2);
         qa1d4 = q.add(BigInteger.ONE).shiftRight(2);
     }

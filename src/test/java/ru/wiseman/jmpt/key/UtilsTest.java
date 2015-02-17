@@ -56,6 +56,14 @@ public class UtilsTest {
     }
 
     @Test
+    public void gFunction2() throws Exception{
+        byte[] expected = { 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78 };
+        String text = "cyhr9jnjp5f8iq30b34rwmvnpu2st75hk89ek9j80lqhh1xmxo68cz3r9e3f4yhp^5";
+
+        assertArrayEquals(expected, Utils.g(text, 41));
+    }
+
+    @Test
     public void mpz_import() throws Exception{
         byte[] data =  {-80, -96, -3, 26, -40};
         String expected = "9oi3w7vc";
@@ -67,6 +75,14 @@ public class UtilsTest {
     public void mpz_import2() throws Exception{
         byte[] data =  { -80, -96 };
         String expected = "yw0";
+
+        assertEquals(expected, Utils.mpzImport(data).toString(36));
+    }
+
+    @Test
+    public void mpz_import3() throws Exception{
+        byte[] data =  { 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78 };
+        String expected = "1i7i88x8cuggcjrwuqb3cg16t5g35bjqjdj92ew1g6dq4a2vicjg13kgk3uuhlce";
 
         assertEquals(expected, Utils.mpzImport(data).toString(36));
     }
