@@ -4,6 +4,8 @@ import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -272,11 +274,76 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public String sign(String toSign) {
-        throw new NotImplementedException();
-//        return null;
-    }
+    public String sign(String data) {
+        final int mdsize = 20;
+        final int mnsize = m.bitLength() / 8;
+        BigInteger foo, foo_sqrt[];
+        foo_sqrt = new BigInteger[4];
 
+        assert m.bitLength() % 8 > 0;
+        assert mnsize > mdsize + SchindelhauerTMCG.TMCG_PRAB_K0;
+
+        // WARNING: This is only a probabilistic algorithm (Rabin's signature scheme),
+        // however, it should work with only a few iterations. Additionally the scheme
+        // PRab from [Bellare, Rogaway: The Exact Security of Digital Signatures]
+        // was implemented to increase the security.
+        do {
+            byte[] r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
+            random.nextBytes(r);
+            ByteArrayOutputStream buff = new ByteArrayOutputStream(data.length() + SchindelhauerTMCG.TMCG_PRAB_K0);
+            try {
+                buff.write(data.getBytes("ASCII"));
+                buff.write(r);
+            }catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            byte[] v = Utils.h(buff.toByteArray());
+            foo = null;
+//            byte[] g12 = Utils.g
+        }while (!mpz_qrmn_p(foo, p, q, m));
+/*
+        do
+        {
+            char *r = new char[TMCG_PRAB_K0];
+            gcry_randomize((unsigned char*)r, TMCG_PRAB_K0, GCRY_STRONG_RANDOM);
+
+            char *Mr = new char[data.length() + TMCG_PRAB_K0];
+            memcpy(Mr, data.c_str(), data.length());
+            memcpy(Mr + data.length(), r, TMCG_PRAB_K0);
+
+            char *w = new char[mdsize];
+            h(w, Mr, data.length() + TMCG_PRAB_K0);
+
+            char *g12 = new char[mnsize];
+            g(g12, mnsize - mdsize, w, mdsize);
+
+            for (size_t i = 0; i < TMCG_PRAB_K0; i++)
+                r[i] ^= g12[i];
+
+            char *yy = new char[mnsize];
+            memcpy(yy, w, mdsize);
+            memcpy(yy + mdsize, r, TMCG_PRAB_K0);
+            memcpy(yy + mdsize + TMCG_PRAB_K0, g12 + TMCG_PRAB_K0,
+                    mnsize - mdsize - TMCG_PRAB_K0);
+            mpz_import(foo, 1, -1, mnsize, 1, 0, yy);
+
+            delete [] yy, delete [] g12, delete [] w, delete [] Mr, delete [] r;
+        }
+        while (!mpz_qrmn_p(foo, p, q, m));
+        mpz_sqrtmn_fast_all(foo_sqrt[0], foo_sqrt[1], foo_sqrt[2], foo_sqrt[3], foo,
+                p, q, m, gcdext_up, gcdext_vq, pa1d4, qa1d4);
+
+        // choose a square root randomly (one out-of four)
+        std::ostringstream ost;
+        ost << "sig|" << keyid() << "|" << foo_sqrt[mpz_srandom_mod(4)] << "|";
+        mpz_clear(foo), mpz_clear(foo_sqrt[0]), mpz_clear(foo_sqrt[1]),
+                mpz_clear(foo_sqrt[2]), mpz_clear(foo_sqrt[3]);
+
+        return ost.str();
+  */
+        throw new NotImplementedException();
+    }
     private TMCGPublicKey makePublicKey(TMCGSecretKey secretKey) {
         return new TMCGPublicKey(secretKey);
     }

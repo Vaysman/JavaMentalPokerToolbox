@@ -20,11 +20,15 @@ public class Utils {
     private static Random random = new SecureRandom();
 
     public static byte[] h(String s) {
+        return h(s.getBytes());
+    }
+
+    public static byte[] h(byte[] data) {
         setBcProvider();
-        byte[] result = null;
+        byte[] result;
         try {
             MessageDigest md = MessageDigest.getInstance("RIPEMD160");
-            md.update(s.getBytes());
+            md.update(data);
             result = md.digest();
         } catch (NoSuchAlgorithmException e) {
             result = new byte[0];
@@ -37,11 +41,7 @@ public class Utils {
             Security.addProvider(new BouncyCastleProvider());
         }
     }
-
-    public static byte[] g(String s) {
-        return g(s, 12);
-    }
-
+    
     public static byte[] g(String s, int osize) {
         setBcProvider();
         int mdsize = 20;

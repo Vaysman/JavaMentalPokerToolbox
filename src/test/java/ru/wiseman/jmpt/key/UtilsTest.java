@@ -52,7 +52,7 @@ public class UtilsTest {
         byte[] expected = {-80, -51, -58, -93, -36, -80, -51, -58, -93, -36, -80, -51};
         String text = "The Magic Words are Squeamish Ossifrage";
 
-        assertArrayEquals(expected, Utils.g(text));
+        assertArrayEquals(expected, Utils.g(text, 12));
     }
 
     @Test
@@ -85,45 +85,5 @@ public class UtilsTest {
         String expected = "1i7i88x8cuggcjrwuqb3cg16t5g35bjqjdj92ew1g6dq4a2vicjg13kgk3uuhlce";
 
         assertEquals(expected, Utils.mpzImport(data).toString(36));
-    }
-
-    @Test
-    public void gcdExt() throws Exception{
-        BigInteger expectedGcd = BigInteger.valueOf(6);
-        BigInteger a = BigInteger.valueOf(12);
-        BigInteger b = BigInteger.valueOf(30);
-
-        BigInteger[] bezout = Utils.gcdExt(a, b);
-        assertEquals(expectedGcd, bezout[0]);
-        assertEquals(expectedGcd, bezout[1].multiply(a).add(bezout[2].multiply(b)));
-    }
-
-    @Test
-    public void gcdEx2() throws Exception{
-        BigInteger expectedGcd = BigInteger.ONE;
-        BigInteger a = BigInteger.valueOf(991);
-        BigInteger b = BigInteger.valueOf(981);
-
-        BigInteger[] bezout = Utils.gcdExt(a, b);
-        assertEquals(expectedGcd, bezout[0]);
-        assertEquals(expectedGcd, bezout[0]);
-        assertEquals(expectedGcd, bezout[1].multiply(a).add(bezout[2].multiply(b)));
-    }
-
-    @Test
-    public void mpz_sqrtmp_r() throws  Exception {
-        BigInteger actual = Utils.mpz_sqrtmp_r(BigInteger.valueOf(2), BigInteger.valueOf(7));
-        BigInteger expected = BigInteger.valueOf(4);
-        assertEquals(expected, actual);
-
-        actual = Utils.mpz_sqrtmp_r(BigInteger.valueOf(4), BigInteger.valueOf(11));
-        expected = BigInteger.valueOf(9);
-        assertEquals(expected, actual);
-
-        actual = Utils.mpz_sqrtmp_r(BigInteger.ZERO, BigInteger.valueOf(11));
-        expected = BigInteger.ZERO;
-        assertEquals(expected, actual);
-
-
     }
 }
