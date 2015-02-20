@@ -4,6 +4,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.math.linearalgebra.BigIntUtils;
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -43,16 +45,33 @@ public class Utils {
     }
     
     public static byte[] g(String s, int osize) {
+        return g(s.getBytes(), osize);
+    }
+
+    public static byte[] g(final byte[] s, int osize) {
         setBcProvider();
         int mdsize = 20;
         int usesize = mdsize / 4;
         byte[] output = new byte[osize];
+        final byte[] padding = "libTMCG".getBytes();
 
         int times = (osize / usesize) + 1;
         byte[] out = new byte[times * mdsize];
+        ByteArrayOutputStream data1 = new ByteArrayOutputStream();
         for (int i = 0; i < times; i++) {
-            String data = s + "libTMCG" + String.format("%02x", i).substring(0, 1) + "\0" + s;
-            byte[] t = Utils.h(data);
+            data1.reset();
+            try {
+                data1.write(s);
+                data1.write(padding);
+                // reproduce of bug in libTMCG
+                data1.write((String.format("%02x", i).substring(0, 1)).getBytes());
+                data1.write(0);
+                // end
+                data1.write(s);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            byte[] t = Utils.h(data1.toByteArray());
             System.arraycopy(t, 0, out, i * usesize, usesize);
         }
         System.arraycopy(out, 0, output, 0, osize);

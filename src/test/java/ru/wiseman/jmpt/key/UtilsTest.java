@@ -56,6 +56,14 @@ public class UtilsTest {
     }
 
     @Test
+    public void gFunction3() throws Exception{
+        byte[] expected = {-80, -51, -58, -93, -36, -80, -51, -58, -93, -36, -80, -51};
+        String text = "The Magic Words are Squeamish Ossifrage";
+
+        assertArrayEquals(expected, Utils.g(text.getBytes(), 12));
+    }
+
+    @Test
     public void gFunction2() throws Exception{
         byte[] expected = { 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78, -112, 102, 22, -52, 78 };
         String text = "cyhr9jnjp5f8iq30b34rwmvnpu2st75hk89ek9j80lqhh1xmxo68cz3r9e3f4yhp^5";
