@@ -120,6 +120,31 @@ public class Utils {
         }
     }
 
+    public static BigInteger[] mpz_sqrtmn_fast_all(BigInteger a, BigInteger p, BigInteger q, BigInteger n,
+                                                BigInteger up, BigInteger vq, BigInteger pa1d4, BigInteger qa1d4)  {
+        BigInteger root_p, root_q;
+        // fast single square roots for Blum Integer
+        root_p = a.modPow(pa1d4, p);
+        root_q = a.modPow(qa1d4, q);
+
+        // construct common square root
+        BigInteger[] roots = new BigInteger[4];
+        roots[0] = root_q;
+        roots[1] = root_p;
+        roots[2] = root_q;
+        roots[3] = root_p;
+        roots[0] = roots[0].multiply(up);
+        roots[1] = roots[1].multiply(vq);
+        roots[0] = roots[0].add(roots[1]).mod(n);
+        roots[1] = n.subtract(roots[0]);
+        roots[2] = roots[2].negate().multiply(up);
+        roots[3] = roots[3].multiply(vq);
+        roots[2] = roots[2].add(roots[3]).mod(n);
+        roots[3] = n.subtract(roots[2]);
+
+        return roots;
+    }
+
     // prime congruent 3 modulo 4
     public static BigInteger mpz_sprime3mod4(int size, int iterations) {
         BigInteger result;

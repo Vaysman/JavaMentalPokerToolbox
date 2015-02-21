@@ -274,11 +274,11 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public String sign(String data) {
+    public String sign(String toSign) {
         final int mdsize = 20;
         final int mnsize = m.bitLength() / 8;
         BigInteger foo, foo_sqrt[];
-        foo_sqrt = new BigInteger[4];
+        byte[] data = toSign.getBytes();
 
         assert m.bitLength() % 8 > 0;
         assert mnsize > mdsize + SchindelhauerTMCG.TMCG_PRAB_K0;
@@ -290,60 +290,36 @@ public class TMCGSecretKey implements SecretKey {
         do {
             byte[] r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
             random.nextBytes(r);
-            ByteArrayOutputStream buff = new ByteArrayOutputStream(data.length() + SchindelhauerTMCG.TMCG_PRAB_K0);
+            ByteArrayOutputStream buff = new ByteArrayOutputStream();
             try {
-                buff.write(data.getBytes("ASCII"));
+                buff.write(data);
                 buff.write(r);
+                byte[] w = Utils.h(buff.toByteArray());
+                byte[] g12 = Utils.g(w, mnsize - mdsize);
+                for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
+                    r[i] ^= g12[i];
+                }
+                buff.reset();
+                buff.write(w);
+                buff.write(r);
+                for (int i = 0; i < mnsize - mdsize - SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
+                    buff.write(g12[SchindelhauerTMCG.TMCG_PRAB_K0 + i]);
+                }
+                foo = Utils.mpzImport(buff.toByteArray());
             }catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
 
-            byte[] v = Utils.h(buff.toByteArray());
-            foo = null;
-//            byte[] g12 = Utils.g
-        }while (!mpz_qrmn_p(foo, p, q, m));
-/*
-        do
-        {
-            char *r = new char[TMCG_PRAB_K0];
-            gcry_randomize((unsigned char*)r, TMCG_PRAB_K0, GCRY_STRONG_RANDOM);
 
-            char *Mr = new char[data.length() + TMCG_PRAB_K0];
-            memcpy(Mr, data.c_str(), data.length());
-            memcpy(Mr + data.length(), r, TMCG_PRAB_K0);
-
-            char *w = new char[mdsize];
-            h(w, Mr, data.length() + TMCG_PRAB_K0);
-
-            char *g12 = new char[mnsize];
-            g(g12, mnsize - mdsize, w, mdsize);
-
-            for (size_t i = 0; i < TMCG_PRAB_K0; i++)
-                r[i] ^= g12[i];
-
-            char *yy = new char[mnsize];
-            memcpy(yy, w, mdsize);
-            memcpy(yy + mdsize, r, TMCG_PRAB_K0);
-            memcpy(yy + mdsize + TMCG_PRAB_K0, g12 + TMCG_PRAB_K0,
-                    mnsize - mdsize - TMCG_PRAB_K0);
-            mpz_import(foo, 1, -1, mnsize, 1, 0, yy);
-
-            delete [] yy, delete [] g12, delete [] w, delete [] Mr, delete [] r;
-        }
-        while (!mpz_qrmn_p(foo, p, q, m));
-        mpz_sqrtmn_fast_all(foo_sqrt[0], foo_sqrt[1], foo_sqrt[2], foo_sqrt[3], foo,
-                p, q, m, gcdext_up, gcdext_vq, pa1d4, qa1d4);
-
-        // choose a square root randomly (one out-of four)
-        std::ostringstream ost;
-        ost << "sig|" << keyid() << "|" << foo_sqrt[mpz_srandom_mod(4)] << "|";
-        mpz_clear(foo), mpz_clear(foo_sqrt[0]), mpz_clear(foo_sqrt[1]),
-                mpz_clear(foo_sqrt[2]), mpz_clear(foo_sqrt[3]);
-
-        return ost.str();
-  */
-        throw new NotImplementedException();
+        } while (!mpz_qrmn_p(foo, p, q, m));
+        foo_sqrt = Utils.mpz_sqrtmn_fast_all(foo, p,q,m,gcdext_up,gcdext_vq,pa1d4,qa1d4);
+        StringBuilder sign = new StringBuilder();
+        sign.append("sig|").
+                append(keyid()).append("|").
+                append(foo_sqrt[random.nextInt(4)].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
+        return sign.toString();
     }
+
     private TMCGPublicKey makePublicKey(TMCGSecretKey secretKey) {
         return new TMCGPublicKey(secretKey);
     }
