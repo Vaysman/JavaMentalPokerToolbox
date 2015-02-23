@@ -14,8 +14,9 @@ public class TMCGPublicKey implements PublicKey {
     private String type;
     private String nizk;
     private String sig;
-    
+
     public TMCGPublicKey(TMCGSecretKey secretKey) {
+        this();
         name = secretKey.getName();
         email = secretKey.getEmail();
         type = secretKey.getType();
@@ -73,16 +74,55 @@ public class TMCGPublicKey implements PublicKey {
         return publicKey;
     }
 
-
-    private static String returnIfNotEmpty(String[] tokens, int index, String name, String sringifiedKey) throws InvalidStringifiedKey {
-        if (index >= tokens.length) {
-            throw new IndexOutOfBoundsException("max index " + (tokens.length - 1) + " got " + index);
+    public String selfId() {
+        // maybe a self signature
+        if(sig != null && sig.isEmpty()) {
+            return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
         }
 
-        if (tokens[index].isEmpty()) {
-            throw new InvalidStringifiedKey(name + " is empty. parsed string is " + sringifiedKey);
+        StringTokenizer st = new StringTokenizer(sig);
+
+        // check magic
+        if (!(st.hasMoreTokens() && st.nextToken().equals("sig"))) {
+            return "ERROR";
         }
-        return tokens[index];
+
+        // skip the keyID
+        if (!(st.hasMoreTokens() && st.nextToken() != null)) {
+            return "ERROR";
+        }
+
+        // get the sigID
+        if(st.hasMoreTokens()) {
+            return st.nextToken();
+        }
+
+        return "ERROR";
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public BigInteger getModulus() {
+        return m;
+    }
+
+    @Override
+    public BigInteger getY() {
+        return y;
     }
 
     @Override
