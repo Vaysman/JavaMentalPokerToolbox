@@ -100,6 +100,17 @@ public class TMCGPublicKey implements PublicKey {
         return "ERROR";
     }
 
+    public String keyId() {
+        String selfId = selfId();
+
+        if(selfId.equals("ERROR")) {
+            return selfId;
+        }
+
+        int idBeginIndex = selfId.length() - Math.min(SchindelhauerTMCG.TMCG_KEYID_SIZE, selfId.length());
+        return "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE + "^" + selfId.substring(idBeginIndex);
+    }
+
     @Override
     public String getName() {
         return name;
@@ -146,10 +157,5 @@ public class TMCGPublicKey implements PublicKey {
     @Override
     public boolean verify(String string, String signature) {
         return false;
-    }
-
-    @Override
-    public String keyId() {
-        return null;
     }
 }
