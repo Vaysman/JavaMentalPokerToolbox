@@ -1,8 +1,10 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
+import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.math.BigInteger;
+import java.util.StringTokenizer;
 
 public class TMCGPublicKey implements PublicKey {
     private BigInteger m;
@@ -10,6 +12,8 @@ public class TMCGPublicKey implements PublicKey {
     private String name;
     private String email;
     private String type;
+    private String nizk;
+    private String sig;
 
     private TMCGPublicKey(BigInteger m, BigInteger y) {
         this.m = m;
@@ -19,40 +23,54 @@ public class TMCGPublicKey implements PublicKey {
     public TMCGPublicKey(SecretKey secretKey) {
     }
 
-    public static TMCGPublicKey importKey(String stringifiedKey) throws InvalidStringifiedKey {
-        String[] parts = stringifiedKey.split("\\|");
+    public TMCGPublicKey() {
+    }
 
-        if (!"pub".equals(parts[0])) {
-            throw new InvalidStringifiedKey("expected \"pub\" got \"" + parts[1] + "\"" + " " + stringifiedKey);
+    public static TMCGPublicKey importKey(String key) {
+        TMCGPublicKey publicKey = new TMCGPublicKey();
+        StringTokenizer st = new StringTokenizer(key, "|", false);
+
+        // check magic
+        if (!(st.hasMoreElements() && st.nextToken().equals("pub"))) {
+            throw new ImportKeyException("Wrong magic");
         }
 
-        String name = returnIfNotEmpty(parts, 1, "name", stringifiedKey);
+        // name
+        if (!(st.hasMoreTokens() && (publicKey.name = st.nextToken()) == null)) {
+            throw new ImportKeyException("Can't read name");
+        }
 
-        String email = returnIfNotEmpty(parts, 2, "email", stringifiedKey);
+        // email
+        if (!(st.hasMoreTokens() && (publicKey.email = st.nextToken()) == null)) {
+            throw new ImportKeyException("Can't read email");
+        }
 
-        String type = returnIfNotEmpty(parts, 3, "type", stringifiedKey);
+        // type
+        if (!(st.hasMoreTokens() && (publicKey.type = st.nextToken()) == null)) {
+            throw new ImportKeyException("Can't read type");
+        }
 
-        String mString = returnIfNotEmpty(parts, 4, "module", stringifiedKey);
+        // m
+        if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
+            throw new ImportKeyException("Can't read type");
+        }
 
-        String yString = returnIfNotEmpty(parts, 5, "y", stringifiedKey);
+        // y
+        if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
+            throw new ImportKeyException("Can't read type");
+        }
 
-        String nizk = returnIfNotEmpty(parts, 6, "nizk", stringifiedKey);
-
-        // signature
-
-/*
+        // NIZK
+        if (!(st.hasMoreTokens() && (publicKey.nizk = st.nextToken()) == null)) {
+            throw new ImportKeyException("Can't read type");
+        }
 
         // sig
-        sig = s;
+        publicKey.sig = key;
 
-        throw true;
-
-  */
-        BigInteger m = new BigInteger(mString, 36);
-        BigInteger y = new BigInteger(yString, 36);
-
-        return new TMCGPublicKey(m, y);
+        return publicKey;
     }
+
 
     private static String returnIfNotEmpty(String[] tokens, int index, String name, String sringifiedKey) throws InvalidStringifiedKey {
         if (index >= tokens.length) {
