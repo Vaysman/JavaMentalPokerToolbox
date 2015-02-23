@@ -91,5 +91,21 @@ public class TMCGSecretKeyTest {
         TMCGSecretKey secretKey = new TMCGSecretKey("Name", "a@a.com", 328, true, _p, _q);
 
     }
+
+    @Test
+    public void decrypt_pereparedData_returnDecodeData() throws Exception {
+        String out = "p:3goxk90rjd16gbgipzh8gba9jyt3l1b4nhxcibvm6fylwmldct04z2rzy0f1oq86nnpv6vn3nen\n" +
+                "q:58qsjjf29y1tjetc8zq9qpgz0ulc2ug7s8ld38z3di9o4ug3tuqg9p659muj0r51djced4ubmpn\n" +
+                "encrypted:enc|ID8^ava6y1sg|42qkusg6l7f4boz5i9yx7qkm59sog4xhjg82fxl9r9cu3tqs6zg3ctlnwdckc2ayc3zehabxpm9zk5ijgs0zy7y8a9q0fyc58gr8z2546npcnuqe4ih5xn65nwl5g305fexxd70nt5ghg83d0huar|\n";
+        String outByLine[] = out.split("\n");
+
+        BigInteger p = new BigInteger(outByLine[0].substring(2), SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+        BigInteger q = new BigInteger(outByLine[1].substring(2), SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+        TMCGSecretKey secretKey = new TMCGSecretKey("Name", "a@a.com", 768, true, p, q);
+
+        byte[] expected = { 49, 50, 50, 51, 51, 51, 52, 52, 52, 52, 53, 53, 53, 53, 53, 54, 54, 54, 54, 54 };
+        byte[] decripted = secretKey.decrypt(outByLine[2].substring(10));
+        assertArrayEquals(expected, decripted);
+    }
 }
 

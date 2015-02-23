@@ -1,17 +1,13 @@
 package ru.wiseman.jmpt.key;
 
-import java.math.BigInteger;
-
 public interface Key {
-    public boolean check();
+    boolean check();
 
-    public String encrypt(String clearText);
+    String encrypt(String clearText);
 
-    public String fingerprint();
+    String fingerprint();
 
-    public BigInteger getPublicModulus();
+    boolean verify(String string, String signature);
 
-    public BigInteger getPublicNqr();
-
-    public boolean verify(String string, String signature);
+    String keyId();
 }

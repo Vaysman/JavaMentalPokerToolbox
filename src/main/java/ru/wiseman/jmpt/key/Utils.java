@@ -154,4 +154,19 @@ public class Utils {
 
         return result;
     }
+
+    public static boolean compareByteArrays(byte[] a, int startA, byte[] b, int startB, int length) {
+        if(a.length - startA < length) {
+            throw new IndexOutOfBoundsException("First array too short");
+        }
+        if(b.length - startB < length) {
+            throw new IndexOutOfBoundsException("Second array too short");
+        }
+        for (int i = 0; i < length; i++) {
+            if(a[startA + i] != b[startB + i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

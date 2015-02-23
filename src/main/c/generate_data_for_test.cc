@@ -85,10 +85,13 @@ int main() {
 	std::cout << mpz_get_ui(foo) << "\n";
 */
 	std::cout << "secret_key\n***********\n";
-	TMCG_SecretKey sec("A", "a@a.com", 328L);
+	TMCG_SecretKey sec("A", "a@a.com", 768L);
 	std::cout <<  sec << "\n";
 	std::cout << "p:" << sec.p << "\n";
 	std::cout << "q:" << sec.q << "\n";
+	std::cout << "m:" << sec.m << "\n";
+	TMCG_PublicKey pub(sec);
+	std::cout << "encrypted:"<< pub.encrypt("122333444455555666666") << "\n";
 //	std::cout << "m1pq:" << sec.m1pq << "\n";
 //	std::cout << "y1:" << sec.y1 << "\n";
 //	std::cout << "gcdext_up:" << sec.gcdext_up << "\n";

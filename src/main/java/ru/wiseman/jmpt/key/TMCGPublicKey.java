@@ -84,21 +84,12 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     @Override
-    public BigInteger getPublicModulus() {
-        return null;
-    }
-
-    @Override
-    public BigInteger getPublicNqr() {
-        return null;
-    }
-
-    @Override
     public boolean verify(String string, String signature) {
         return false;
     }
 
-    public String keyid() {
+    @Override
+    public String keyId() {
         return null;
     }
 }

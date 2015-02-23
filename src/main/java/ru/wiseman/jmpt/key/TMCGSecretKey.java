@@ -4,11 +4,14 @@ import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.StringTokenizer;
 
 public class TMCGSecretKey implements SecretKey {
     public static final BigInteger BIG_INTEGER_8 = BigInteger.valueOf(8);
@@ -95,7 +98,7 @@ public class TMCGSecretKey implements SecretKey {
         y = BigInteger.ONE;
         do {
             y = y.add(BigInteger.ONE);
-        } while (IntegerFunctions.jacobi(y, m) != 1 || mpz_qrmn_p(y, p, q, m));
+        } while (IntegerFunctions.jacobi(y, m) != 1 || Utils.mpz_qrmn_p(y, p, q, m));
 
         // pre-compute non-persistent values
         precompute();
@@ -203,11 +206,13 @@ public class TMCGSecretKey implements SecretKey {
         repl = "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE +"^";
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
-        sig = sig.substring(0, index) + keyid() + sig.substring(index+replsize, sig.length());
+        // FIXME make it work
+//        sig = sig.substring(0, index) + keyId() + sig.substring(index+replsize, sig.length());
     }
 
-    private String keyid() {
-        return makePublicKey(this).keyid();
+    @Override
+    public String keyId() {
+        return makePublicKey(this).keyId();
     }
 
     // pre-compute non-persistent values
@@ -225,14 +230,79 @@ public class TMCGSecretKey implements SecretKey {
         qa1d4 = q.add(BigInteger.ONE).shiftRight(2);
     }
 
-    // quadratic residiosity mod n, with n = p * q
-    private boolean mpz_qrmn_p(BigInteger y, BigInteger p, BigInteger q, BigInteger m) {
-        return IntegerFunctions.jacobi(y, p) == 1 && IntegerFunctions.jacobi(y, q) == 1;
-    }
-
     public static TMCGSecretKey importKey(String key) {
+        StringTokenizer st = new StringTokenizer(key, "|", false);
         throw new NotImplementedException();
 //        return null;
+/*
+bool TMCG_SecretKey::import
+	(std::string s)
+{
+	try
+	{
+		// check magic
+		if (!TMCG_ParseHelper::cm(s, "sec", '|'))
+			throw false;
+
+		// name
+		name = TMCG_ParseHelper::gs(s, '|');
+		if ((TMCG_ParseHelper::gs(s, '|').length() == 0) ||
+			(!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// email
+		email = TMCG_ParseHelper::gs(s, '|');
+		if ((TMCG_ParseHelper::gs(s, '|').length() == 0) ||
+			(!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// type
+		type = TMCG_ParseHelper::gs(s, '|');
+		if ((TMCG_ParseHelper::gs(s, '|').length() == 0) ||
+			(!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// m
+		if ((mpz_set_str(m, TMCG_ParseHelper::gs(s, '|').c_str(),
+			TMCG_MPZ_IO_BASE) < 0) || (!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// y
+		if ((mpz_set_str(y, TMCG_ParseHelper::gs(s, '|').c_str(),
+			TMCG_MPZ_IO_BASE) < 0) || (!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// p
+		if ((mpz_set_str(p, TMCG_ParseHelper::gs(s, '|').c_str(),
+			TMCG_MPZ_IO_BASE) < 0) || (!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// q
+		if ((mpz_set_str(q, TMCG_ParseHelper::gs(s, '|').c_str(),
+			TMCG_MPZ_IO_BASE) < 0) || (!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// NIZK
+		nizk = TMCG_ParseHelper::gs(s, '|');
+		if ((TMCG_ParseHelper::gs(s, '|').length() == 0) ||
+			(!TMCG_ParseHelper::nx(s, '|')))
+				throw false;
+
+		// sig
+		sig = s;
+
+		// pre-compute non-persistent values
+		precompute();
+
+		throw true;
+	}
+	catch (bool return_value)
+	{
+		return return_value;
+	}
+}
+
+         */
     }
 
     @Override
@@ -251,26 +321,79 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public BigInteger getPublicModulus() {
-        throw new NotImplementedException();
-//        return null;
-    }
-
-    @Override
-    public BigInteger getPublicNqr() {
-        throw new NotImplementedException();
-//        return null;
-    }
-
-    @Override
     public boolean verify(String data, String signature) {
         return makePublicKey(this).verify(data, signature);
     }
 
     @Override
     public byte[] decrypt(byte[] encryptedText) {
-        throw new NotImplementedException();
-//        return new byte[0];
+        return decrypt(new String(encryptedText));
+    }
+
+    public byte[] decrypt(String s) {
+        BigInteger vdata, vroot[];
+        int rabin_s2 = 2 * SchindelhauerTMCG.TMCG_SAEP_S0;
+        int rabin_s1 = (m.bitLength() / 8) - rabin_s2;
+
+        assert rabin_s2 < m.bitLength() / 16;
+        assert rabin_s2 < rabin_s1;
+        assert SchindelhauerTMCG.TMCG_SAEP_S0 < m.bitLength() / 32;
+
+        byte[] r = new byte[rabin_s1];
+        byte[] mt = new byte[rabin_s2];
+        byte[] g12;
+
+        StringTokenizer st = new StringTokenizer(s, "|", false);
+
+        // check magic
+        if (!(st.hasMoreElements() && st.nextToken().equals("enc"))) {
+            throw new DecryptException("Wrong magic");
+        }
+
+        // check keyID
+
+        String kid = null;
+        if(!(st.hasMoreTokens() && (kid = st.nextToken()).equals(keyId()))) {
+            throw new DecryptException("Wrong key id. Expected " + keyId() + ", found " + kid);
+        }
+
+        // vdata
+        if(!(st.hasMoreTokens() && (vdata = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new DecryptException("Wrong encrypted data");
+        }
+
+        // decrypt value, i.e., compute the modular square roots
+        if(!Utils.mpz_qrmn_p(vdata, p, q, m)) {
+            throw new DecryptException("Wrong encrypted data");
+        }
+        vroot = Utils.mpz_sqrtmn_fast_all(vdata, p, q, m, gcdext_up, gcdext_vq, pa1d4, qa1d4);
+
+        // check all four square roots
+        for(int i = 0; i < 4; i++) {
+            if(vroot[i].bitLength() / 8 <= (rabin_s1 + rabin_s2)) {
+                ByteArrayInputStream buff = new ByteArrayInputStream(vroot[i].toByteArray());
+                buff.read(mt, 0, rabin_s2);
+                buff.read(r, 0, rabin_s1);
+                g12 = Utils.g(r, rabin_s2);
+                for (int j = 0; j < rabin_s2; j++) {
+                    mt[j] ^= g12[j];
+                }
+                if(isAllMatch(Arrays.copyOfRange(mt, SchindelhauerTMCG.TMCG_SAEP_S0, SchindelhauerTMCG.TMCG_SAEP_S0 * 2), (byte) 0)) {
+                    return Arrays.copyOf(mt, SchindelhauerTMCG.TMCG_SAEP_S0);
+                }
+            }
+        }
+        throw new DecryptException("Can't decrypt");
+    }
+
+    private boolean isAllMatch(final byte[] a, final byte value) {
+        for (byte e : a) {
+            if(e != value) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -311,11 +434,11 @@ public class TMCGSecretKey implements SecretKey {
             }
 
 
-        } while (!mpz_qrmn_p(foo, p, q, m));
+        } while (!Utils.mpz_qrmn_p(foo, p, q, m));
         foo_sqrt = Utils.mpz_sqrtmn_fast_all(foo, p,q,m,gcdext_up,gcdext_vq,pa1d4,qa1d4);
         StringBuilder sign = new StringBuilder();
         sign.append("sig|").
-                append(keyid()).append("|").
+                append(keyId()).append("|").
                 append(foo_sqrt[random.nextInt(4)].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
         return sign.toString();
     }
