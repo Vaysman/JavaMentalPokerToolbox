@@ -251,6 +251,39 @@ public class TMCGSecretKey implements SecretKey {
                 "|" + sig;
     }
 
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    public String getNizk() {
+        return nizk;
+    }
+
+    public String getSig() {
+        return sig;
+    }
+
+    @Override
+    public BigInteger getModulus() {
+        return m;
+    }
+
+    @Override
+    public BigInteger getY() {
+        return y;
+    }
+
     private void generate(int keySize, boolean appendNizkProf) {
         generate(keySize, appendNizkProf, false);
     }

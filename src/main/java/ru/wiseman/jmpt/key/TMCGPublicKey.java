@@ -14,13 +14,15 @@ public class TMCGPublicKey implements PublicKey {
     private String type;
     private String nizk;
     private String sig;
-
-    private TMCGPublicKey(BigInteger m, BigInteger y) {
-        this.m = m;
-        this.y = y;
-    }
-
-    public TMCGPublicKey(SecretKey secretKey) {
+    
+    public TMCGPublicKey(TMCGSecretKey secretKey) {
+        name = secretKey.getName();
+        email = secretKey.getEmail();
+        type = secretKey.getType();
+        nizk = secretKey.getNizk();
+        sig = secretKey.getSig();
+        m = secretKey.getModulus();
+        y = secretKey.getY();
     }
 
     public TMCGPublicKey() {
