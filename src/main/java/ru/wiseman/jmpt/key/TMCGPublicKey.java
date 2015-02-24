@@ -3,7 +3,11 @@ package ru.wiseman.jmpt.key;
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGPublicKey implements PublicKey {
@@ -14,6 +18,7 @@ public class TMCGPublicKey implements PublicKey {
     private String type;
     private String nizk;
     private String sig;
+    private Random random;
 
     public TMCGPublicKey(TMCGSecretKey secretKey) {
         this();
@@ -27,6 +32,7 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     public TMCGPublicKey() {
+        random = new SecureRandom();
     }
 
     public static TMCGPublicKey importKey(String key) {
@@ -78,7 +84,7 @@ public class TMCGPublicKey implements PublicKey {
 
     public String selfId() {
         // maybe a self signature
-        if(sig != null && sig.isEmpty()) {
+        if (sig == null || sig.isEmpty()) {
             return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
         }
 
@@ -95,7 +101,7 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         // get the sigID
-        if(st.hasMoreTokens()) {
+        if (st.hasMoreTokens()) {
             return st.nextToken();
         }
 
@@ -111,7 +117,7 @@ public class TMCGPublicKey implements PublicKey {
     public String keyId(int size) {
         String selfId = selfId();
 
-        if(selfId.equals("ERROR")) {
+        if (selfId.equals("ERROR")) {
             return selfId;
         }
 
@@ -153,8 +159,37 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     @Override
-    public String encrypt(String clearText) {
-        return null;
+    public String encrypt(String value) {
+        BigInteger vdata;
+
+        int rabin_s2 = 2 * SchindelhauerTMCG.TMCG_SAEP_S0;
+        int rabin_s1 = (m.bitLength() / 8) - rabin_s2;
+
+        assert (rabin_s2 < (m.bitLength() / 16));
+        assert (rabin_s2 < rabin_s1);
+        assert (SchindelhauerTMCG.TMCG_SAEP_S0 < (m.bitLength() / 32));
+
+        byte[] r = new byte[rabin_s1];
+        random.nextBytes(r);
+
+        byte[] mt = new byte[rabin_s2];
+        int length = Math.min(value.getBytes().length, SchindelhauerTMCG.TMCG_SAEP_S0);
+        System.arraycopy(value.getBytes(), 0, mt, 0, length);
+        byte[] g12 = Utils.g(r, rabin_s2);
+        for (int i = 0; i < rabin_s2; i++) {
+            mt[i] ^= g12[i];
+        }
+
+        ByteArrayOutputStream buff = new ByteArrayOutputStream();
+        try {
+            buff.write(mt);
+            buff.write(r);
+        } catch (IOException e) {
+            throw new EncryptingException();
+        }
+        vdata = Utils.mpzImport(buff.toByteArray());
+        vdata = vdata.pow(2).mod(m);
+        return "enc|" + keyId() + "|" + vdata.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|";
     }
 
     @Override

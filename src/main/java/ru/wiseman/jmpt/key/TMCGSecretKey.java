@@ -115,7 +115,7 @@ public class TMCGSecretKey implements SecretKey {
 
     @Override
     public String keyId(int size) {
-        return makePublicKey(this).keyId();
+        return makePublicKey(this).keyId(size);
     }
 
     @Override
@@ -136,6 +136,11 @@ public class TMCGSecretKey implements SecretKey {
     @Override
     public boolean verify(String data, String signature) {
         return makePublicKey(this).verify(data, signature);
+    }
+
+    @Override
+    public String keyId() {
+        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
     }
 
     @Override
@@ -294,7 +299,7 @@ public class TMCGSecretKey implements SecretKey {
         BigInteger foo, bar;
         final int size = (keySize / 2) + 1;
 
-        String type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
+        type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
         if (!precomp) {
             do {
                 // choose a random safe prime p, but with fixed size (n/2 + 1) bit
@@ -435,7 +440,7 @@ public class TMCGSecretKey implements SecretKey {
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
         // FIXME make it work
-//        sig = sig.substring(0, index) + keyId() + sig.substring(index+replsize, sig.length());
+        sig = sig.substring(0, index) + keyId() + sig.substring(index+replsize, sig.length());
     }
 
     private boolean isAllMatch(final byte[] a, final byte value) {
