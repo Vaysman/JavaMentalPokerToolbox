@@ -110,6 +110,8 @@ public class SchindelhauerTMCG {
     /* Define the maximum size of the exponent for fast exponentiation */
     public static final int TMCG_MAX_FPOWM_T = 2048;
 
+    public static final int RMD160_HASH_SIZE = 20;
+
 
     public SchindelhauerTMCG(int numberOfProofs, int numberOfPlayer, int numberOfBitsForEncodingCard) {
 

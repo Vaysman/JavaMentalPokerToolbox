@@ -2,6 +2,7 @@ package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.math.BigInteger;
 import java.util.StringTokenizer;
@@ -39,37 +40,39 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         // name
-        if (!(st.hasMoreTokens() && (publicKey.name = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (publicKey.name = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read name");
         }
 
         // email
-        if (!(st.hasMoreTokens() && (publicKey.email = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (publicKey.email = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read email");
         }
 
         // type
-        if (!(st.hasMoreTokens() && (publicKey.type = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (publicKey.type = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read type");
         }
 
         // m
-        if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read modulus");
         }
 
         // y
-        if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read y");
         }
 
         // NIZK
-        if (!(st.hasMoreTokens() && (publicKey.nizk = st.nextToken()) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (publicKey.nizk = st.nextToken()) != null)) {
+            throw new ImportKeyException("Can't read nzik");
         }
 
         // sig
-        publicKey.sig = key;
+        if (!(st.hasMoreTokens() && (publicKey.sig = st.nextToken("\n").substring(1)) != null)) {
+            throw new ImportKeyException("Can't read signature");
+        }
 
         return publicKey;
     }
@@ -80,7 +83,7 @@ public class TMCGPublicKey implements PublicKey {
             return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
         }
 
-        StringTokenizer st = new StringTokenizer(sig);
+        StringTokenizer st = new StringTokenizer(sig, "|", false);
 
         // check magic
         if (!(st.hasMoreTokens() && st.nextToken().equals("sig"))) {
@@ -151,7 +154,22 @@ public class TMCGPublicKey implements PublicKey {
 
     @Override
     public String fingerprint() {
-        return null;
+        int hash_size = SchindelhauerTMCG.RMD160_HASH_SIZE;
+
+        // compute the digest
+        String data = "pub|" + name + "|" + email + "|" + type +
+                "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
+                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
+                "|" + nizk + "|" + sig;
+        byte[] digest = Utils.h(data);
+
+        // convert the digest to a hexadecimal encoded string
+        StringBuilder fingerprint = new StringBuilder();
+        for (int i = 0; i < (hash_size / 2); i++) {
+            fingerprint.append(String.format("%02X%02X ", digest[2 * i], digest[(2 * i) + 1]));
+        }
+
+        return fingerprint.toString();
     }
 
     @Override

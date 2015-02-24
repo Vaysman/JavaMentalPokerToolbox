@@ -58,52 +58,54 @@ public class TMCGSecretKey implements SecretKey {
         StringTokenizer st = new StringTokenizer(key, "|", false);
 
         // check magic
-        if (!(st.hasMoreElements() && st.nextToken().equals("enc"))) {
+        if (!(st.hasMoreElements() && st.nextToken().equals("sec"))) {
             throw new ImportKeyException("Wrong magic");
         }
 
         // name
-        if (!(st.hasMoreTokens() && (secretKey.name = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (secretKey.name = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read name");
         }
 
         // email
-        if (!(st.hasMoreTokens() && (secretKey.email = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (secretKey.email = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read email");
         }
 
         // type
-        if (!(st.hasMoreTokens() && (secretKey.type = st.nextToken()) == null)) {
+        if (!(st.hasMoreTokens() && (secretKey.type = st.nextToken()) != null)) {
             throw new ImportKeyException("Can't read type");
         }
 
         // m
-        if (!(st.hasMoreTokens() && (secretKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (secretKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read modulus");
         }
 
         // y
-        if (!(st.hasMoreTokens() && (secretKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (secretKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read y");
         }
 
         // p
-        if (!(st.hasMoreTokens() && (secretKey.p = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (secretKey.p = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read p");
         }
 
         // q
-        if (!(st.hasMoreTokens() && (secretKey.q = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (secretKey.q = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read q");
         }
 
         // NIZK
-        if (!(st.hasMoreTokens() && (secretKey.nizk = st.nextToken()) == null)) {
-            throw new ImportKeyException("Can't read type");
+        if (!(st.hasMoreTokens() && (secretKey.nizk = st.nextToken()) != null)) {
+            throw new ImportKeyException("Can't read nzik");
         }
 
         // sig
-        secretKey.sig = key;
+        if (!(st.hasMoreTokens() && (secretKey.sig = st.nextToken("\n").substring(1)) != null)) {
+            throw new ImportKeyException("Can't read signature");
+        }
 
         // pre-compute non-persistent values
         secretKey.precompute();
