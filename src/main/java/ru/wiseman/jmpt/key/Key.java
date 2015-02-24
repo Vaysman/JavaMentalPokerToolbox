@@ -1,5 +1,7 @@
 package ru.wiseman.jmpt.key;
 
+import ru.wiseman.jmpt.SchindelhauerTMCG;
+
 import java.math.BigInteger;
 
 public interface Key {
@@ -22,4 +24,6 @@ public interface Key {
     boolean verify(String string, String signature);
 
     String keyId();
+
+    String keyId(int size);
 }

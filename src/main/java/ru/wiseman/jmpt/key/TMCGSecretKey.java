@@ -114,7 +114,7 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public String keyId() {
+    public String keyId(int size) {
         return makePublicKey(this).keyId();
     }
 

@@ -2,7 +2,6 @@ package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.math.BigInteger;
 import java.util.StringTokenizer;
@@ -103,15 +102,21 @@ public class TMCGPublicKey implements PublicKey {
         return "ERROR";
     }
 
+    @Override
     public String keyId() {
+        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
+    }
+
+    @Override
+    public String keyId(int size) {
         String selfId = selfId();
 
         if(selfId.equals("ERROR")) {
             return selfId;
         }
 
-        int idBeginIndex = selfId.length() - Math.min(SchindelhauerTMCG.TMCG_KEYID_SIZE, selfId.length());
-        return "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE + "^" + selfId.substring(idBeginIndex);
+        int idBeginIndex = selfId.length() - Math.min(size, selfId.length());
+        return "ID" + size + "^" + selfId.substring(idBeginIndex);
     }
 
     @Override
