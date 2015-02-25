@@ -184,11 +184,13 @@ public class TMCGSecretKey implements SecretKey {
             throw new DecryptException("Wrong encrypted data");
         }
         vroot = Utils.mpz_sqrtmn_fast_all(vdata, p, q, m, gcdext_up, gcdext_vq, pa1d4, qa1d4);
-
-        // check all four square roots
         for (int i = 0; i < 4; i++) {
             if (vroot[i].bitLength() / 8 <= (rabin_s1 + rabin_s2)) {
                 ByteArrayInputStream buff = new ByteArrayInputStream(vroot[i].toByteArray());
+                // skip sign byte
+                if (buff.read() != 0) {
+                    buff.reset();
+                }
                 buff.read(mt, 0, rabin_s2);
                 buff.read(r, 0, rabin_s1);
                 g12 = Utils.g(r, rabin_s2);
@@ -440,7 +442,7 @@ public class TMCGSecretKey implements SecretKey {
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
         // FIXME make it work
-        sig = sig.substring(0, index) + keyId() + sig.substring(index+replsize, sig.length());
+        sig = sig.substring(0, index) + keyId() + sig.substring(index + replsize, sig.length());
     }
 
     private boolean isAllMatch(final byte[] a, final byte value) {
