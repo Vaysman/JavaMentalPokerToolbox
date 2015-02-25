@@ -22,7 +22,12 @@ public class TMCGPublicKeyTest {
 
     @Test
     public void testVerify() throws Exception {
+        String v = "To be signed ...", vf = "Not valid!";
 
+        TMCGSecretKey sec = new TMCGSecretKey("Name", "Email", 768, true);
+        TMCGPublicKey pub = new TMCGPublicKey(sec);
+        String sign = sec.sign(v);
+        assertTrue(pub.verify(v, sign));
     }
 
     @Test

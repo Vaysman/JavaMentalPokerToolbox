@@ -2,11 +2,15 @@ package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -213,7 +217,82 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     @Override
-    public boolean verify(String string, String signature) {
+    public boolean verify(String data, String s) {
+        BigInteger foo;
+
+        StringTokenizer st = new StringTokenizer(s, "|", false);
+
+        // check magic
+        if (!(st.hasMoreElements() && st.nextToken().equals("sig"))) {
+            throw new SignatureException("Wrong magic");
+        }
+
+        // check keyID
+        String kid = null;
+        if (!(st.hasMoreTokens() && (kid = st.nextToken()) != null && kid.equals(keyId(keyIdSize(kid))))) {
+            throw new DecryptException("Wrong key id. Expected " + keyId(keyIdSize(kid)) + ", found " + kid);
+        }
+
+        // value
+        if (!(st.hasMoreTokens() && (foo = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+            throw new ImportKeyException("Can't read signature");
+        }
+
+        // verify signature
+        int mdsize = SchindelhauerTMCG.RMD160_HASH_SIZE;
+        int mnsize = m.bitLength() / 8;
+
+        assert m.bitLength() > mnsize * 8;
+        assert mnsize > mdsize + SchindelhauerTMCG.TMCG_PRAB_K0;
+
+        foo = foo.pow(2).mod(m);
+        byte[] w = new byte[mdsize], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
+        byte[] gamma = new byte[mnsize - mdsize - SchindelhauerTMCG.TMCG_PRAB_K0];
+        ByteArrayInputStream buff = new ByteArrayInputStream(foo.toByteArray());
+        try {
+            buff.read(w);
+            buff.read(r);
+            buff.read(gamma);
+        } catch (IOException e) {
+            return false;
+        }
+        byte[] g12 = Utils.g(w, mnsize - mdsize);
+        for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
+            r[i] ^= g12[i];
+        }
+        ByteArrayOutputStream mr = new ByteArrayOutputStream();
+        try {
+            mr.write(data.getBytes());
+            mr.write(r);
+        } catch (IOException e) {
+            return false;
+        }
+        byte[] w2 = Utils.h(mr.toByteArray());
+        if(Arrays.equals(w, w2) && Arrays.equals(gamma, Arrays.copyOfRange(g12, SchindelhauerTMCG.TMCG_PRAB_K0, g12.length))) {
+            return true;
+        }
+
         return false;
+    }
+
+    private int keyIdSize(String s) {
+        int size;
+        // check the format
+        if ((s.length() < 4) || !s.startsWith("ID") || !s.contains("^")) {
+            return 0;
+        }
+
+        // extract the size
+        try {
+            int indexOfCircumflex = s.indexOf('^');
+            size = Integer.parseInt(s.substring(2, indexOfCircumflex));
+            if(size != s.length() - indexOfCircumflex - 1) {
+                return 0;
+            }
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+
+        return size;
     }
 }
