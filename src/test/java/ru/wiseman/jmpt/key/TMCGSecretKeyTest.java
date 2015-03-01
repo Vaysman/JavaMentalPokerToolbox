@@ -47,12 +47,11 @@ public class TMCGSecretKeyTest {
     @Test
     @Category(SlowTests.class)
     public void check_keyWithoutProof_returnsTrue() throws Exception {
-        boolean notAddProof = false;
-        TMCGSecretKey key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_1024, notAddProof);
+        TMCGSecretKey key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_1024);
 
         assertThat(key.check(), is(true));
 
-        key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_2048, notAddProof);
+        key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_2048);
         assertThat(key.check(), is(true));
     }
 

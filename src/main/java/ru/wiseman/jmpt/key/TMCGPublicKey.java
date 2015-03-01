@@ -391,15 +391,14 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         // verify signature
-        int mdsize = SchindelhauerTMCG.RMD160_HASH_SIZE;
-        int mnsize = m.bitLength() / 8;
+        final int mnsize = m.bitLength() / 8;
 
         assert m.bitLength() > mnsize * 8;
-        assert mnsize > mdsize + SchindelhauerTMCG.TMCG_PRAB_K0;
+        assert mnsize > SchindelhauerTMCG.RMD160_HASH_SIZE + SchindelhauerTMCG.TMCG_PRAB_K0;
 
         foo = foo.pow(2).mod(m);
-        byte[] w = new byte[mdsize], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
-        byte[] gamma = new byte[mnsize - mdsize - SchindelhauerTMCG.TMCG_PRAB_K0];
+        byte[] w = new byte[SchindelhauerTMCG.RMD160_HASH_SIZE], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
+        byte[] gamma = new byte[mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE - SchindelhauerTMCG.TMCG_PRAB_K0];
         ByteArrayInputStream buff = new ByteArrayInputStream(foo.toByteArray());
         Utils.skipSignByte(buff);
         try {
@@ -409,7 +408,7 @@ public class TMCGPublicKey implements PublicKey {
         } catch (IOException e) {
             return false;
         }
-        byte[] g12 = Utils.g(w, mnsize - mdsize);
+        byte[] g12 = Utils.g(w, mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE);
         for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
             r[i] ^= g12[i];
         }
@@ -426,6 +425,10 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         return false;
+    }
+
+    public void setSignature(String signature) {
+        this.sig = signature;
     }
 
     private int keyIdSize(String s) {

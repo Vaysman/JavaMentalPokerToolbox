@@ -187,8 +187,12 @@ public class TMCGSecretKey implements SecretKey {
             if (vroot[i].bitLength() / 8 <= (rabin_s1 + rabin_s2)) {
                 ByteArrayInputStream buff = new ByteArrayInputStream(vroot[i].toByteArray());
                 Utils.skipSignByte(buff);
-                buff.read(mt, 0, rabin_s2);
-                buff.read(r, 0, rabin_s1);
+                if (buff.read(mt, 0, rabin_s2) < rabin_s2) {
+                    throw new DecryptException("Not enough byte for message");
+                }
+                if (buff.read(r, 0, rabin_s1) < rabin_s1) {
+                    throw new DecryptException("Not enough byte for gamma");
+                }
                 g12 = Utils.g(r, rabin_s2);
                 for (int j = 0; j < rabin_s2; j++) {
                     mt[j] ^= g12[j];
@@ -203,13 +207,12 @@ public class TMCGSecretKey implements SecretKey {
 
     @Override
     public String sign(String toSign) {
-        final int mdsize = 20;
         final int mnsize = m.bitLength() / 8;
         BigInteger foo, foo_sqrt[];
         byte[] data = toSign.getBytes();
 
         assert m.bitLength() % 8 > 0;
-        assert mnsize > mdsize + SchindelhauerTMCG.TMCG_PRAB_K0;
+        assert mnsize > SchindelhauerTMCG.RMD160_HASH_SIZE + SchindelhauerTMCG.TMCG_PRAB_K0;
 
         // WARNING: This is only a probabilistic algorithm (Rabin's signature scheme),
         // however, it should work with only a few iterations. Additionally the scheme
@@ -223,14 +226,14 @@ public class TMCGSecretKey implements SecretKey {
                 buff.write(data);
                 buff.write(r);
                 byte[] w = Utils.h(buff.toByteArray());
-                byte[] g12 = Utils.g(w, mnsize - mdsize);
+                byte[] g12 = Utils.g(w, mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE);
                 for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
                     r[i] ^= g12[i];
                 }
                 buff.reset();
                 buff.write(w);
                 buff.write(r);
-                for (int i = 0; i < mnsize - mdsize - SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
+                for (int i = 0; i < mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE - SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
                     buff.write(g12[SchindelhauerTMCG.TMCG_PRAB_K0 + i]);
                 }
                 foo = Utils.mpzImport(buff.toByteArray());
@@ -241,11 +244,9 @@ public class TMCGSecretKey implements SecretKey {
 
         } while (!Utils.mpz_qrmn_p(foo, p, q, m));
         foo_sqrt = Utils.mpz_sqrtmn_fast_all(foo, p, q, m, gcdext_up, gcdext_vq, pa1d4, qa1d4);
-        StringBuilder sign = new StringBuilder();
-        sign.append("sig|").
-                append(keyId()).append("|").
-                append(foo_sqrt[random.nextInt(4)].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
-        return sign.toString();
+        return "sig|" +
+                keyId() + "|" +
+                foo_sqrt[random.nextInt(4)].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|";
     }
 
     @Override
@@ -400,11 +401,15 @@ public class TMCGSecretKey implements SecretKey {
         data = name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" +
                 y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
         sig = sign(data);
+        // signature change update public key
+        publicKey.setSignature(sig);
 
         repl = "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE + "^";
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
         sig = sig.substring(0, index) + keyId() + sig.substring(index + replsize, sig.length());
+        // signature change update public key
+        publicKey.setSignature(sig);
     }
 
     private TMCGPublicKey getPublicKey() {
