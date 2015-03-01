@@ -27,6 +27,12 @@ public class TMCGSecretKeyTest {
     @Mock
     private TMCGPublicKey publicKey;
 
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+        when(publicKey.keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE)).thenReturn("ID8^12345678");
+    }
+
     @Test
     public void allGetters_preparedKey_returnsCorrectData() throws Exception {
         TMCGSecretKey secretKey = TMCGSecretKey.importKey(TestUtil.loadResource("prepared_secret_key.txt"));
@@ -132,12 +138,6 @@ public class TMCGSecretKeyTest {
         key.keyId();
 
         verify(publicKey, atLeastOnce()).keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        when(publicKey.keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE)).thenReturn("ID8^12345678");
     }
 
     @Test

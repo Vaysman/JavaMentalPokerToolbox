@@ -356,6 +356,7 @@ public class TMCGPublicKey implements PublicKey {
             return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
         }
 
+        // FIXME replace StringTokenizer
         StringTokenizer st = new StringTokenizer(sig, "|", false);
 
         // check magic
