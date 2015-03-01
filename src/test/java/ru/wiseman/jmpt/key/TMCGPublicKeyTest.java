@@ -47,7 +47,7 @@ public class TMCGPublicKeyTest {
 
         secretKey = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_2048, addProof);
         key = new TMCGPublicKey(secretKey);
-        
+
         assertThat(key.check(), is(true));
     }
 
@@ -66,7 +66,6 @@ public class TMCGPublicKeyTest {
         assertThat(key.check(), is(true));
     }
 
-
     @Test
     @Category(SlowTest.class)
     public void check_createUsingSecretKey_returnsTrue() throws Exception {
@@ -77,6 +76,10 @@ public class TMCGPublicKeyTest {
         publicKey = make_publicKey(KEY_SIZE_2048);
 
         assertThat(publicKey.check(), is(true));
+    }
+
+    @Test
+    public void encrypt() throws Exception {
     }
 
     @Test

@@ -14,22 +14,14 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGPublicKey implements PublicKey {
-    private BigInteger m;
-    private BigInteger y;
-    private String name;
     private String email;
-    private String type;
+    private BigInteger m;
+    private String name;
     private String nizk;
-    private String sig;
     private Random random;
-
-    public String getNizk() {
-        return nizk;
-    }
-
-    public String getSig() {
-        return sig;
-    }
+    private String sig;
+    private String type;
+    private BigInteger y;
 
     public TMCGPublicKey(TMCGSecretKey secretKey) {
         this();
@@ -92,74 +84,6 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         return publicKey;
-    }
-
-    public String selfId() {
-        // maybe a self signature
-        if (sig == null || sig.isEmpty()) {
-            return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
-        }
-
-        StringTokenizer st = new StringTokenizer(sig, "|", false);
-
-        // check magic
-        if (!(st.hasMoreTokens() && st.nextToken().equals("sig"))) {
-            return "ERROR";
-        }
-
-        // skip the keyID
-        if (!(st.hasMoreTokens() && st.nextToken() != null)) {
-            return "ERROR";
-        }
-
-        // get the sigID
-        if (st.hasMoreTokens()) {
-            return st.nextToken();
-        }
-
-        return "ERROR";
-    }
-
-    @Override
-    public String keyId() {
-        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
-    }
-
-    @Override
-    public String keyId(int size) {
-        String selfId = selfId();
-
-        if (selfId.equals("ERROR")) {
-            return selfId;
-        }
-
-        int idBeginIndex = selfId.length() - Math.min(size, selfId.length());
-        return "ID" + size + "^" + selfId.substring(idBeginIndex);
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getEmail() {
-        return email;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    public BigInteger getModulus() {
-        return m;
-    }
-
-    @Override
-    public BigInteger getY() {
-        return y;
     }
 
     @Override
@@ -377,6 +301,93 @@ public class TMCGPublicKey implements PublicKey {
     }
 
     @Override
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public BigInteger getModulus() {
+        return m;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    public String getNizk() {
+        return nizk;
+    }
+
+    public String getSig() {
+        return sig;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public BigInteger getY() {
+        return y;
+    }
+
+    @Override
+    public String keyId() {
+        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
+    }
+
+    @Override
+    public String keyId(int size) {
+        String selfId = selfId();
+
+        if (selfId.equals("ERROR")) {
+            return selfId;
+        }
+
+        int idBeginIndex = selfId.length() - Math.min(size, selfId.length());
+        return "ID" + size + "^" + selfId.substring(idBeginIndex);
+    }
+
+    public String selfId() {
+        // maybe a self signature
+        if (sig == null || sig.isEmpty()) {
+            return "SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG-SELFSIG";
+        }
+
+        StringTokenizer st = new StringTokenizer(sig, "|", false);
+
+        // check magic
+        if (!(st.hasMoreTokens() && st.nextToken().equals("sig"))) {
+            return "ERROR";
+        }
+
+        // skip the keyID
+        if (!(st.hasMoreTokens() && st.nextToken() != null)) {
+            return "ERROR";
+        }
+
+        // get the sigID
+        if (st.hasMoreTokens()) {
+            return st.nextToken();
+        }
+
+        return "ERROR";
+    }
+
+    public void setSignature(String signature) {
+        this.sig = signature;
+    }
+
+    @Override
+    public String toString() {
+        return "pub|" + name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
+                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk +
+                "|" + sig;
+    }
+
+    @Override
     public boolean verify(String data, String s) {
         BigInteger foo;
 
@@ -437,17 +448,6 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return "pub|" + name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
-                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk +
-                "|" + sig;
-    }
-
-    public void setSignature(String signature) {
-        this.sig = signature;
     }
 
     private int keyIdSize(String s) {

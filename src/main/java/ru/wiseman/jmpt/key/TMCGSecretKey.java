@@ -14,23 +14,23 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGSecretKey implements SecretKey {
-    private String name;
     private String email;
-    private String type;
-    private String nizk;
-    private String sig;
-    private BigInteger m;
-    private BigInteger y;
-    private BigInteger p;
-    private BigInteger q;
-    private volatile TMCGPublicKey publicKey;
-    // non-persistent members
-    private BigInteger m1pq;
     private BigInteger gcdext_up;
     private BigInteger gcdext_vq;
+    private BigInteger m;
+    // non-persistent members
+    private BigInteger m1pq;
+    private String name;
+    private String nizk;
+    private BigInteger p;
     private BigInteger pa1d4;
+    private volatile TMCGPublicKey publicKey;
+    private BigInteger q;
     private BigInteger qa1d4;
     private Random random;
+    private String sig;
+    private String type;
+    private BigInteger y;
 
     public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf, TMCGPublicKey publicKey) {
         this();
@@ -120,33 +120,8 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public String keyId(int size) {
-        return getPublicKey().keyId(size);
-    }
-
-    @Override
     public boolean check() {
         return getPublicKey().check();
-    }
-
-    @Override
-    public String encrypt(String clearText) {
-        return getPublicKey().encrypt(clearText);
-    }
-
-    @Override
-    public String fingerprint() {
-        return getPublicKey().fingerprint();
-    }
-
-    @Override
-    public boolean verify(String data, String signature) {
-        return getPublicKey().verify(data, signature);
-    }
-
-    @Override
-    public String keyId() {
-        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
     }
 
     @Override
@@ -214,6 +189,59 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
+    public String encrypt(String clearText) {
+        return getPublicKey().encrypt(clearText);
+    }
+
+    @Override
+    public String fingerprint() {
+        return getPublicKey().fingerprint();
+    }
+
+    @Override
+    public String getEmail() {
+        return email;
+    }
+
+    @Override
+    public BigInteger getModulus() {
+        return m;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    public String getNizk() {
+        return nizk;
+    }
+
+    public String getSig() {
+        return sig;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public BigInteger getY() {
+        return y;
+    }
+
+    @Override
+    public String keyId(int size) {
+        return getPublicKey().keyId(size);
+    }
+
+    @Override
+    public String keyId() {
+        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
+    }
+
+    @Override
     public String sign(String toSign) {
         final int mnsize = m.bitLength() / 8;
         BigInteger foo, foo_sqrt[];
@@ -266,36 +294,8 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getEmail() {
-        return email;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    public String getNizk() {
-        return nizk;
-    }
-
-    public String getSig() {
-        return sig;
-    }
-
-    @Override
-    public BigInteger getModulus() {
-        return m;
-    }
-
-    @Override
-    public BigInteger getY() {
-        return y;
+    public boolean verify(String data, String signature) {
+        return getPublicKey().verify(data, signature);
     }
 
     private void generate(int keySize, boolean appendNizkProf) {
