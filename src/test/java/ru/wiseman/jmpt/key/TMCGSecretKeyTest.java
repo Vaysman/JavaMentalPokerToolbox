@@ -21,8 +21,8 @@ public class TMCGSecretKeyTest {
     private static final int KEY_SIZE_2048 = 2048;
     private static final String ANY_STRING = "any string";
     private static final String ANY_STRING2 = "another any string";
-    private static final String SECRET_KEY_COMPATIBILITY_TEST = TestUtil.loadStringifiedKey("secret_key_with_nizk_import_from_libTMCG.txt");
-    private static final String SECRET_KEY = TestUtil.loadStringifiedKey("secret_key_without_nizk_with_small_modulus.txt");
+    private static final String SECRET_KEY_COMPATIBILITY_TEST = TestUtil.loadResource("secret_key_with_nizk_import_from_libTMCG.txt");
+    private static final String SECRET_KEY = TestUtil.loadResource("secret_key_without_nizk_with_small_modulus.txt");
 
     @Mock
     private TMCGPublicKey publicKey;
@@ -127,7 +127,7 @@ public class TMCGSecretKeyTest {
 
     @Test
     public void allGetters_preparedKey_returnsCorrectData() throws Exception {
-        TMCGSecretKey secretKey = TMCGSecretKey.importKey(TestUtil.loadStringifiedKey("prepared_secret_key.txt"));
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(TestUtil.loadResource("prepared_secret_key.txt"));
 
         assertThat(secretKey.getName(), is("Alice"));
         assertThat(secretKey.getEmail(), is("alice@example.com"));
@@ -170,6 +170,22 @@ public class TMCGSecretKeyTest {
         int end = signature1.indexOf("|", start);
 
         assertThat(signature1.substring(start, end), is(signature2.substring(start, end)));
+    }
+
+    @Test
+    public void decrypt_preparedEncyptedText_returnsDecryptedText() throws Exception {
+        String text = "I never finish anyth";
+        String encryptedText = TestUtil.loadResource("encrypted_text.txt");
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        assertThat(secretKey.decrypt(encryptedText), is(text.getBytes()));
+    }
+
+    @Test(expected = DecryptException.class)
+    public void decrypt_emptyByteArray_returnsDecryptedText() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        secretKey.decrypt(new byte[0]);
     }
 
     @Test

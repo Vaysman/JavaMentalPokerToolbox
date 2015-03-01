@@ -7,7 +7,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 public class KeyParserTest {
-    private static final String SECRET_KEY = TestUtil.loadStringifiedKey("prepared_secret_key.txt");
+    private static final String SECRET_KEY = TestUtil.loadResource("prepared_secret_key.txt");
 
     @Test
     public void parse_preparedSecretKey_returnsSecretKey() throws Exception {

@@ -5,17 +5,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class TestUtil {
-    public static String loadStringifiedKey(final String name) {
-        BufferedReader key = new BufferedReader(
-                new InputStreamReader(
-                        Thread.currentThread().getContextClassLoader().getResourceAsStream("ru/wiseman/jmpt/key/" + name)
-                )
-        );
-
+    public static String loadResource(final String name) {
         try {
+            BufferedReader key = new BufferedReader(
+                    new InputStreamReader(
+                            Thread.currentThread().getContextClassLoader().getResourceAsStream("ru/wiseman/jmpt/key/" + name)
+                    )
+            );
+
             return key.readLine().trim();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Can't load key");
+        } catch (IOException | NullPointerException e) {
+            throw new IllegalArgumentException("Can't load resource " + name);
         }
     }
 }

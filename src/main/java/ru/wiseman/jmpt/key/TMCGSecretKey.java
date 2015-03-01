@@ -105,7 +105,7 @@ public class TMCGSecretKey implements SecretKey {
 
             // sig
             errorMessage = "Can't read signature";
-            secretKey.sig =String.join("|", Arrays.copyOfRange(tokens, 9, tokens.length)) + "|";
+            secretKey.sig = String.join("|", Arrays.copyOfRange(tokens, 9, tokens.length)) + "|";
             if (secretKey.sig.length() < 10) {
                 throw new ImportKeyException("Signature can't be empty");
             }
@@ -167,6 +167,7 @@ public class TMCGSecretKey implements SecretKey {
         byte[] mt = new byte[rabin_s2];
         byte[] g12;
 
+        // FIXME replace StringTokenizer
         StringTokenizer st = new StringTokenizer(s, "|", false);
 
         // check magic
