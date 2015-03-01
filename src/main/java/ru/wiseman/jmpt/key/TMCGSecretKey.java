@@ -401,14 +401,14 @@ public class TMCGSecretKey implements SecretKey {
         data = name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" +
                 y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
         sig = sign(data);
-        // signature change update public key
+        // FIXME: signature change update public key
         publicKey.setSignature(sig);
 
         repl = "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE + "^";
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
         sig = sig.substring(0, index) + keyId() + sig.substring(index + replsize, sig.length());
-        // signature change update public key
+        // FIXME: signature change update public key
         publicKey.setSignature(sig);
     }
 
