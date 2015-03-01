@@ -1,6 +1,7 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
+import ru.wiseman.jmpt.ImportException;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.io.ByteArrayInputStream;
@@ -45,42 +46,42 @@ public class TMCGPublicKey implements PublicKey {
 
         // check magic
         if (!(st.hasMoreElements() && st.nextToken().equals("pub"))) {
-            throw new ImportKeyException("Wrong magic");
+            throw new ImportException("Wrong magic");
         }
 
         // name
         if (!(st.hasMoreTokens() && (publicKey.name = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read name");
+            throw new ImportException("Can't read name");
         }
 
         // email
         if (!(st.hasMoreTokens() && (publicKey.email = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read email");
+            throw new ImportException("Can't read email");
         }
 
         // type
         if (!(st.hasMoreTokens() && (publicKey.type = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read type");
+            throw new ImportException("Can't read type");
         }
 
         // m
         if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read modulus");
+            throw new ImportException("Can't read modulus");
         }
 
         // y
         if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read y");
+            throw new ImportException("Can't read y");
         }
 
         // NIZK
         if (!(st.hasMoreTokens() && (publicKey.nizk = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read nzik");
+            throw new ImportException("Can't read nzik");
         }
 
         // sig
         if (!(st.hasMoreTokens() && (publicKey.sig = st.nextToken("\n").substring(1)) != null)) {
-            throw new ImportKeyException("Can't read signature");
+            throw new ImportException("Can't read signature");
         }
 
         return publicKey;
@@ -408,7 +409,7 @@ public class TMCGPublicKey implements PublicKey {
 
         // value
         if (!(st.hasMoreTokens() && (foo = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read signature");
+            throw new ImportException("Can't read signature");
         }
 
         // verify signature

@@ -1,6 +1,7 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
+import ru.wiseman.jmpt.ImportException;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.io.ByteArrayInputStream;
@@ -62,7 +63,7 @@ public class TMCGSecretKey implements SecretKey {
             // check magic
             errorMessage = "Wrong magic";
             if (!tokens[0].equals("sec")) {
-                throw new ImportKeyException(errorMessage);
+                throw new ImportException(errorMessage);
             }
 
             // name
@@ -94,23 +95,23 @@ public class TMCGSecretKey implements SecretKey {
                 errorMessage = "Can't read q";
                 secretKey.q = new BigInteger(tokens[7], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
             } catch (NumberFormatException ex) {
-                throw new ImportKeyException(errorMessage, ex);
+                throw new ImportException(errorMessage, ex);
             }
 
             // NIZK
             errorMessage = "Can't read nizk";
             if ((secretKey.nizk = tokens[8]).isEmpty()) {
-                throw new ImportKeyException("NIZK proof can't be empty");
+                throw new ImportException("NIZK proof can't be empty");
             }
 
             // sig
             errorMessage = "Can't read signature";
             secretKey.sig = String.join("|", Arrays.copyOfRange(tokens, 9, tokens.length)) + "|";
             if (secretKey.sig.length() < 10) {
-                throw new ImportKeyException("Signature can't be empty");
+                throw new ImportException("Signature can't be empty");
             }
         } catch (NoSuchElementException ex) {
-            throw new ImportKeyException(errorMessage, ex);
+            throw new ImportException(errorMessage, ex);
         }
 
         // pre-compute non-persistent values
