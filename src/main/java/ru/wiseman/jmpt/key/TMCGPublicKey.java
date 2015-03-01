@@ -23,6 +23,14 @@ public class TMCGPublicKey implements PublicKey {
     private String sig;
     private Random random;
 
+    public String getNizk() {
+        return nizk;
+    }
+
+    public String getSig() {
+        return sig;
+    }
+
     public TMCGPublicKey(TMCGSecretKey secretKey) {
         this();
         name = secretKey.getName();
@@ -40,6 +48,7 @@ public class TMCGPublicKey implements PublicKey {
 
     public static TMCGPublicKey importKey(String key) {
         TMCGPublicKey publicKey = new TMCGPublicKey();
+        // FIXME replace StringTokenizer
         StringTokenizer st = new StringTokenizer(key, "|", false);
 
         // check magic
@@ -157,8 +166,7 @@ public class TMCGPublicKey implements PublicKey {
     public boolean check() {
         BigInteger foo, bar;
         String s = nizk;
-        int stage1_size = 0, stage2_size = 0, stage3_size = 0;
-        int mnsize = m.bitLength() / 8;
+        int stage1_size, stage2_size, stage3_size;
 
         // sanity check, whether y \in Z^\circ
         if (IntegerFunctions.jacobi(y, m) != 1) {
@@ -267,7 +275,7 @@ public class TMCGPublicKey implements PublicKey {
                 // check, whether bar^2 \equiv +-foo or \equiv +-2foo (mod m)
                 bar = bar.pow(2).mod(m);
                 // FIXME: this is a rare but a bad case
-                if(!bar.equals(BigInteger.ZERO)) {
+                if (!bar.equals(BigInteger.ZERO)) {
                     if (Utils.isNotCoungruent(bar, foo, m)) {
                         foo = foo.negate();
                         if (Utils.isNotCoungruent(bar, foo, m)) {
@@ -372,6 +380,7 @@ public class TMCGPublicKey implements PublicKey {
     public boolean verify(String data, String s) {
         BigInteger foo;
 
+        // FIXME replace StringTokenizer
         StringTokenizer st = new StringTokenizer(s, "|", false);
 
         // check magic
@@ -398,15 +407,18 @@ public class TMCGPublicKey implements PublicKey {
 
         foo = foo.pow(2).mod(m);
         byte[] w = new byte[SchindelhauerTMCG.RMD160_HASH_SIZE], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
-        byte[] gamma = new byte[mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE - SchindelhauerTMCG.TMCG_PRAB_K0];
+        int gammaSize = mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE - SchindelhauerTMCG.TMCG_PRAB_K0;
+        byte[] gamma = new byte[gammaSize];
         ByteArrayInputStream buff = new ByteArrayInputStream(foo.toByteArray());
         Utils.skipSignByte(buff);
-        try {
-            buff.read(w);
-            buff.read(r);
-            buff.read(gamma);
-        } catch (IOException e) {
-            return false;
+        if (buff.read(w, 0, SchindelhauerTMCG.RMD160_HASH_SIZE) < SchindelhauerTMCG.RMD160_HASH_SIZE) {
+            throw new VerifyException("Not enough byte for hash sum");
+        }
+        if (buff.read(r, 0, SchindelhauerTMCG.TMCG_PRAB_K0) < SchindelhauerTMCG.TMCG_PRAB_K0) {
+            throw new VerifyException("Not enough byte for random data");
+        }
+        if (buff.read(gamma, 0, gammaSize) < gammaSize) {
+            throw new VerifyException("Not enough byte for gamma");
         }
         byte[] g12 = Utils.g(w, mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE);
         for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
@@ -425,6 +437,13 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "pub|" + name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
+                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk +
+                "|" + sig;
     }
 
     public void setSignature(String signature) {

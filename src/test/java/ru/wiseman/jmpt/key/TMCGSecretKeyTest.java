@@ -113,13 +113,8 @@ public class TMCGSecretKeyTest {
     }
 
     @Test
-    public void check_improperSecretKey_returnsFalse() throws Exception {
-        TMCGSecretKey key = new TMCGSecretKey("", "", 768, false);
-    }
-
-    @Test
     @Category(SlowTest.class)
-    public void importKey_keyFromTestForlibTMCG_checkReturnsTrue() throws Exception {
+    public void importKey_keyFromTestFromlibTMCG_checkReturnsTrue() throws Exception {
         TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY_COMPATIBILITY_TEST);
 
         assertThat(secretKey.check(), is(true));
