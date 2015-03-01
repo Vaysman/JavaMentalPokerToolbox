@@ -7,24 +7,39 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 
-import java.math.BigInteger;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 public class TMCGSecretKeyTest {
-    public static final String NAME = "any string";
-    public static final String EMAIL = "any string";
-    public static final int KEY_SIZE_1024 = 1024;
-    public static final int KEY_SIZE_2048 = 2048;
+    private static final String NAME = "any string";
+    private static final String EMAIL = "any string";
+    private static final int KEY_SIZE_1024 = 1024;
+    private static final int KEY_SIZE_2048 = 2048;
     private static final String ANY_STRING = "any string";
     private static final String ANY_STRING2 = "another any string";
+    private static final String SECRET_KEY = loadStringifiedKey();
 
     @Mock
     private TMCGPublicKey publicKey;
+
+    private static String loadStringifiedKey() {
+        BufferedReader key = new BufferedReader(
+                new InputStreamReader(
+                        Thread.currentThread().getContextClassLoader().getResourceAsStream("ru/wiseman/jmpt/key/secret_key_with_nizk_import_from_libTMCG.txt")
+                )
+        );
+
+        try {
+            return key.readLine().trim();
+        } catch (IOException e) {
+            return "";
+        }
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -33,7 +48,7 @@ public class TMCGSecretKeyTest {
     }
 
     @Test
-    @Category(SlowTests.class)
+    @Category(SlowTest.class)
     public void check_keyWithProof_returnsTrue() throws Exception {
         boolean addProof = true;
         TMCGSecretKey key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_1024, addProof);
@@ -45,13 +60,15 @@ public class TMCGSecretKeyTest {
     }
 
     @Test
-    @Category(SlowTests.class)
+    @Category(SlowTest.class)
     public void check_keyWithoutProof_returnsTrue() throws Exception {
         TMCGSecretKey key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_1024);
 
         assertThat(key.check(), is(true));
 
+
         key = new TMCGSecretKey(NAME, EMAIL, KEY_SIZE_2048);
+        
         assertThat(key.check(), is(true));
     }
 
@@ -120,6 +137,22 @@ public class TMCGSecretKeyTest {
 //        boolean check = privateKey.check();
 //
 //        assertFalse(check);
+    }
+
+    @Test
+    @Category(SlowTest.class)
+    public void importKey_keyFromTestForlibTMCG_checkReturnsTrue() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        assertThat(secretKey.check(), is(true));
+    }
+
+    @Test
+    @Category(SlowTest.class)
+    public void toString_keyFromTestForlibTMCG_returnsStringEqualsToOriginal() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        assertThat(secretKey.check(), is(true));
     }
 
     private TMCGSecretKey make_secretKeyWithMockedPublicKey() {
