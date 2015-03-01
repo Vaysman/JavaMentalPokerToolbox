@@ -4,6 +4,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.math.linearalgebra.BigIntUtils;
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -168,5 +169,20 @@ public class Utils {
             }
         }
         return true;
+    }
+
+    public static void skipSignByte(ByteArrayInputStream buff) {
+        // skip sign byte
+        if (buff.read() != 0) {
+            buff.reset();
+        }
+    }
+
+    public static boolean isCoungruent(BigInteger a, BigInteger b, BigInteger m) {
+        return a.subtract(b).mod(m).equals(BigInteger.ZERO);
+    }
+
+    public static boolean isNotCoungruent(BigInteger a, BigInteger b, BigInteger m) {
+        return !isCoungruent(a, b, m);
     }
 }

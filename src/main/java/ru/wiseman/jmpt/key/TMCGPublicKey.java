@@ -2,19 +2,20 @@ package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGPublicKey implements PublicKey {
+    public static final BigInteger BIG_INTEGER_2 = BigInteger.valueOf(2);
+    public static final BigInteger BIG_INTEGER_5 = BigInteger.valueOf(5);
     private BigInteger m;
     private BigInteger y;
     private String name;
@@ -156,9 +157,162 @@ public class TMCGPublicKey implements PublicKey {
 
     @Override
     public boolean check() {
+        BigInteger foo, bar;
+        String s = nizk;
+        int stage1_size = 0, stage2_size = 0, stage3_size = 0;
+        int mnsize = m.bitLength() / 8;
+
+        // sanity check, whether y \in Z^\circ
         if (IntegerFunctions.jacobi(y, m) != 1) {
             return false;
         }
+
+        // sanity check, whether m \in ODD (odd numbers)
+        if (!m.testBit(0)) {
+            return false;
+        }
+
+        // sanity check, whether m \not\in P (prime)
+        // (here is a very small probability of false-negative behaviour,
+        // FIXME: give a short witness in public key)
+        if (m.isProbablePrime(500)) {
+            return false;
+        }
+
+        // check self-signature
+        String data = name + "|" + email + "|" + type + "|" +
+                m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" +
+                y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
+
+        if (!verify(data, sig)) {
+            return false;
+        }
+
+        // check, whether m \not\in FP (fermat primes: m = 2^k + 1)
+        foo = m.subtract(BigInteger.ONE);
+
+        // FIXME: is m correct here? (not foo)
+        int k = foo.bitLength();
+        bar = BIG_INTEGER_2.pow(k);
+        if (foo.equals(bar)) {
+            // check, whether k is power of two
+            foo = BigInteger.valueOf(k);
+            int l = foo.bitLength();
+            bar = BIG_INTEGER_2.pow(l);
+            if (foo.equals(bar)) {
+                // check, whether m is not equal to 5L
+                if (m.equals(BIG_INTEGER_5)) {
+                    return false;
+                }
+                // check, whether 5^{2^(k/2)} \equiv -1 (mod m) [Pepin's prime test]
+                foo = BIG_INTEGER_2.pow(k / 2).mod(m);
+                foo = BIG_INTEGER_5.modPow(foo, m);
+                bar = BigInteger.ONE.negate();
+                if (Utils.isCoungruent(foo, bar, m)) {
+                    return false;
+                }
+            }
+        }
+
+        // abort, if non-NIZK key
+        if (!type.contains("NIZK")) {
+            return true;
+        }
+
+        StringTokenizer st = new StringTokenizer(s, "^", false);
+
+        try {
+            // check magic of NIZK
+            if (!st.nextToken().equals("nzk")) {
+                return false;
+            }
+
+            // initialize NIZK proof input
+            PRNGenerator generator = new PRNGenerator(m, y);
+
+            // get security parameter of STAGE1
+            if ((stage1_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1) {
+                return false;
+            }
+
+            // STAGE1: m is Square Free
+            for (int i = 0; i < stage1_size; i++) {
+                foo = generator.nextCoprime();
+
+                // read NIZK proof
+                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                    return false;
+                }
+
+                // check, whether bar^m mod m is equal to foo
+                bar = bar.modPow(m, m);
+                if (!bar.equals(foo)) {
+                    return false;
+                }
+            }
+
+            // get security parameter of STAGE2
+            // check security constraint of STAGE2
+            if ((stage2_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) {
+                return false;
+            }
+
+            // STAGE2: m is Prime Power Product
+            for (int i = 0; i < stage2_size; i++) {
+                foo = generator.nextCoprime();
+
+                // read NIZK proof
+                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                    return false;
+                }
+
+                // check, whether bar^2 \equiv +-foo or \equiv +-2foo (mod m)
+                bar = bar.pow(2).mod(m);
+                // FIXME: this is a rare but a bad case
+                if(!bar.equals(BigInteger.ZERO)) {
+                    if (Utils.isNotCoungruent(bar, foo, m)) {
+                        foo = foo.negate();
+                        if (Utils.isNotCoungruent(bar, foo, m)) {
+                            foo = foo.shiftLeft(1);
+                            if (Utils.isNotCoungruent(bar, foo, m)) {
+                                foo = foo.negate();
+                                if (Utils.isNotCoungruent(bar, foo, m))
+                                    return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // get security parameter of STAGE3
+            // check security constraint of STAGE3
+            if ((stage3_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE3) {
+                return false;
+            }
+
+            // STAGE3: y \in NQR^\circ_m
+            for (int i = 0; i < stage3_size; i++) {
+                foo = generator.nextNQR();
+
+                // read NIZK proof
+                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                    return false;
+                }
+
+                // check congruence [Goldwasser-Micali NIZK proof for NQR]
+                bar = bar.pow(2).mod(m);
+                if (Utils.isNotCoungruent(bar, foo, m)) {
+                    foo = foo.multiply(y).mod(m);
+                    if (Utils.isNotCoungruent(bar, foo, m)) {
+                        return false;
+                    }
+                }
+            }
+        } catch (NoSuchElementException ex) {
+            return false;
+        }
+
+        // finish
         return true;
     }
 
@@ -249,6 +403,7 @@ public class TMCGPublicKey implements PublicKey {
         byte[] w = new byte[mdsize], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
         byte[] gamma = new byte[mnsize - mdsize - SchindelhauerTMCG.TMCG_PRAB_K0];
         ByteArrayInputStream buff = new ByteArrayInputStream(foo.toByteArray());
+        Utils.skipSignByte(buff);
         try {
             buff.read(w);
             buff.read(r);
@@ -268,7 +423,7 @@ public class TMCGPublicKey implements PublicKey {
             return false;
         }
         byte[] w2 = Utils.h(mr.toByteArray());
-        if(Arrays.equals(w, w2) && Arrays.equals(gamma, Arrays.copyOfRange(g12, SchindelhauerTMCG.TMCG_PRAB_K0, g12.length))) {
+        if (Arrays.equals(w, w2) && Arrays.equals(gamma, Arrays.copyOfRange(g12, SchindelhauerTMCG.TMCG_PRAB_K0, g12.length))) {
             return true;
         }
 
@@ -286,7 +441,7 @@ public class TMCGPublicKey implements PublicKey {
         try {
             int indexOfCircumflex = s.indexOf('^');
             size = Integer.parseInt(s.substring(2, indexOfCircumflex));
-            if(size != s.length() - indexOfCircumflex - 1) {
+            if (size != s.length() - indexOfCircumflex - 1) {
                 return 0;
             }
         } catch (NumberFormatException ex) {

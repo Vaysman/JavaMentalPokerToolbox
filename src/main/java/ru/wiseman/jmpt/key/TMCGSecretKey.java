@@ -24,6 +24,7 @@ public class TMCGSecretKey implements SecretKey {
     private BigInteger y;
     private BigInteger p;
     private BigInteger q;
+    private volatile TMCGPublicKey publicKey;
     // non-persistent members
     private BigInteger m1pq;
     private BigInteger gcdext_up;
@@ -32,25 +33,25 @@ public class TMCGSecretKey implements SecretKey {
     private BigInteger qa1d4;
     private Random random;
 
-    public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf) {
+    public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf, TMCGPublicKey publicKey) {
         this();
         this.name = name;
         this.email = email;
+        this.publicKey = publicKey;
 
         generate(keySize, appendNizkProf);
     }
 
-    public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf, BigInteger p, BigInteger q) {
-        this();
-        this.name = name;
-        this.email = email;
-        this.q = q;
-        this.p = p;
-        generate(keySize, appendNizkProf, true);
-    }
-
     public TMCGSecretKey() {
         random = new SecureRandom();
+    }
+
+    public TMCGSecretKey(String name, String email, int keySize) {
+        this(name, email, keySize, false, null);
+    }
+
+    public TMCGSecretKey(String name, String email, int keySize, boolean appendNizkProf) {
+        this(name, email, keySize, appendNizkProf, null);
     }
 
     public static TMCGSecretKey importKey(String key) {
@@ -115,27 +116,27 @@ public class TMCGSecretKey implements SecretKey {
 
     @Override
     public String keyId(int size) {
-        return makePublicKey(this).keyId(size);
+        return getPublicKey().keyId(size);
     }
 
     @Override
     public boolean check() {
-        return makePublicKey(this).check();
+        return getPublicKey().check();
     }
 
     @Override
     public String encrypt(String clearText) {
-        return makePublicKey(this).encrypt(clearText);
+        return getPublicKey().encrypt(clearText);
     }
 
     @Override
     public String fingerprint() {
-        return makePublicKey(this).fingerprint();
+        return getPublicKey().fingerprint();
     }
 
     @Override
     public boolean verify(String data, String signature) {
-        return makePublicKey(this).verify(data, signature);
+        return getPublicKey().verify(data, signature);
     }
 
     @Override
@@ -187,10 +188,7 @@ public class TMCGSecretKey implements SecretKey {
         for (int i = 0; i < 4; i++) {
             if (vroot[i].bitLength() / 8 <= (rabin_s1 + rabin_s2)) {
                 ByteArrayInputStream buff = new ByteArrayInputStream(vroot[i].toByteArray());
-                // skip sign byte
-                if (buff.read() != 0) {
-                    buff.reset();
-                }
+                Utils.skipSignByte(buff);
                 buff.read(mt, 0, rabin_s2);
                 buff.read(r, 0, rabin_s1);
                 g12 = Utils.g(r, rabin_s2);
@@ -294,41 +292,34 @@ public class TMCGSecretKey implements SecretKey {
     }
 
     private void generate(int keySize, boolean appendNizkProf) {
-        generate(keySize, appendNizkProf, false);
-    }
-
-    private void generate(int keySize, boolean appendNizkProf, boolean precomp) {
         BigInteger foo, bar;
         final int size = (keySize / 2) + 1;
 
         type = "TMCG/RABIN_" + keySize + (appendNizkProf ? "_NIZK" : "");
-        if (!precomp) {
+        do {
+            // choose a random safe prime p, but with fixed size (n/2 + 1) bit
+            p = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+            assert !p.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
+
+            // choose a random safe prime q, but with fixed size (n/2 + 1) bit
+            // and p \not\equiv q (mod 8)
+            foo = BIG_INTEGER_8;
             do {
-                // choose a random safe prime p, but with fixed size (n/2 + 1) bit
-                p = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
-                assert !p.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
+                q = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
+            } while (p.mod(foo).equals(q));
+            assert !q.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
+            assert (!p.mod(foo).equals(q));
 
-                // choose a random safe prime q, but with fixed size (n/2 + 1) bit
-                // and p \not\equiv q (mod 8)
-                foo = BIG_INTEGER_8;
-                do {
-                    q = Utils.mpz_sprime3mod4(size, SchindelhauerTMCG.TMCG_MR_ITERATIONS);
-                } while (p.mod(foo).equals(q));
-                assert !q.mod(BIG_INTEGER_8).equals(BigInteger.ONE);
-                assert (!p.mod(foo).equals(q));
-
-                // compute modulus: m = p \cdot q
-                m = p.multiply(q);
-
-                // compute upper bound for SAEP, i.e. 2^{n+1} + 2^n
-                foo = BigInteger.ONE;
-                foo = foo.multiply(BIG_INTEGER_2.pow(keySize));
-                bar = foo.multiply(BIG_INTEGER_2);
-                bar = foo.add(bar);
-            } while (m.bitLength() < keySize + 1 || m.compareTo(bar) >= 0);
-        } else {
+            // compute modulus: m = p \cdot q
             m = p.multiply(q);
-        }
+
+            // compute upper bound for SAEP, i.e. 2^{n+1} + 2^n
+            foo = BigInteger.ONE;
+            foo = foo.multiply(BIG_INTEGER_2.pow(keySize));
+            bar = foo.multiply(BIG_INTEGER_2);
+            bar = foo.add(bar);
+        } while (m.bitLength() < keySize + 1 || m.compareTo(bar) >= 0);
+
         // choose a small $y \in NQR^\circ_m$ for fast TMCG encoding
         y = BigInteger.ONE;
         do {
@@ -345,44 +336,24 @@ public class TMCGSecretKey implements SecretKey {
 
         // STAGE1/2: m = p^i * q^j, p and q prime
         // STAGE3: y \in NQR^\circ_m
-        String input = m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
-        String nizk2 = "nzk^" + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 + "^";
-        final int mnsize = m.bitLength() / 8;
+        StringBuilder nizk2 = new StringBuilder("nzk^" + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 + "^");
+        PRNGenerator generator = new PRNGenerator(m, y);
 
         // STAGE1: m Square Free
         // soundness error probability \le d^{-TMCG_KEY_NIZK_STAGE1}
         for (int stage1 = 0; stage1 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1 && appendNizkProf; stage1++) {
-            // common random number foo \in Z^*_m (build from hash function g)
-            do {
-                byte[] mn = Utils.g(input, mnsize);
-                byte[] foo_data = new byte[mnsize];
-                System.arraycopy(mn, 0, foo_data, 0, mnsize);
-                foo = Utils.mpzImport(foo_data);
-                foo = foo.mod(m);
-                bar = foo.gcd(m);
-                input = input + foo.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
-            } while (bar.compareTo(BigInteger.ONE) != 0);
-
+            foo = generator.nextCoprime();
             // compute bar = foo^{m^{-1} mod \phi(m)} mod m
             bar = foo.modPow(m1pq, m);
             // update NIZK-proof stream
-            nizk2 = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
+            nizk2.append(bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("^");
         }
 
         // STAGE2: m Prime Power Product
         // soundness error probability \le 2^{-TMCG_KEY_NIZK_STAGE2}
-        nizk2 = nizk2 + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2 + "^";
+        nizk2.append(SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2 + "^");
         for (int stage2 = 0; (stage2 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) && appendNizkProf; stage2++) {
-            // common random number foo \in Z^*_m (build from hash function g)
-            do {
-                byte[] mn = Utils.g(input, mnsize);
-                byte[] foo_data = new byte[mnsize];
-                System.arraycopy(mn, 0, foo_data, 0, mnsize);
-                foo = Utils.mpzImport(foo_data);
-                foo = foo.mod(m);
-                bar = foo.gcd(m);
-                input = input + foo.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
-            } while (bar.compareTo(BigInteger.ONE) != 0);
+            foo = generator.nextCoprime();
 
             // compute square root of +-foo or +-2foo mod m
             if (Utils.mpz_qrmn_p(foo, p, q, m)) {
@@ -400,34 +371,28 @@ public class TMCGSecretKey implements SecretKey {
                         if (Utils.mpz_qrmn_p(foo, p, q, m)) {
                             bar = Utils.mpz_sqrtmn_r(foo, p, q);
                         } else {
+                            // FIXME: this is a rare but a bad case
                             bar = BigInteger.ZERO;
                         }
                     }
                 }
             }
             // update NIZK-proof stream
-            nizk2 = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
+            nizk2.append(bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("^");
         }
 
         // STAGE3: y \in NQR^\circ_m
         // soundness error probability \le 2^{-TMCG_KEY_NIZK_STAGE3}
-        nizk2 = nizk2 + SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE3 + "^";
+        nizk2.append(SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE3 + "^");
         for (int stage3 = 0; (stage3 < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) && appendNizkProf; stage3++) {
             // common random number foo \in Z^\circ_m (build from hash function g)
-            do {
-                byte[] mn = Utils.g(input, mnsize);
-                byte[] foo_data = new byte[mnsize];
-                System.arraycopy(mn, 0, foo_data, 0, mnsize);
-                foo = Utils.mpzImport(foo_data);
-                foo = foo.mod(m);
-                input = input + foo.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
-            } while (IntegerFunctions.jacobi(foo, m) != 1);
+            foo = generator.nextNQR();
             // compute square root
             if (!Utils.mpz_qrmn_p(foo, p, q, m)) {
                 foo = foo.multiply(y).mod(m);
             }
             bar = Utils.mpz_sqrtmn_r(foo, p, q);
-            nizk2 = nizk2 + bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "^";
+            nizk2.append(bar.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("^");
         }
 
         nizk = nizk2.toString();
@@ -441,8 +406,21 @@ public class TMCGSecretKey implements SecretKey {
         repl = "ID" + SchindelhauerTMCG.TMCG_KEYID_SIZE + "^";
         int index = sig.indexOf(repl);
         int replsize = repl.length() + SchindelhauerTMCG.TMCG_KEYID_SIZE;
-        // FIXME make it work
         sig = sig.substring(0, index) + keyId() + sig.substring(index + replsize, sig.length());
+    }
+
+    private TMCGPublicKey getPublicKey() {
+        TMCGPublicKey localPublicKey = publicKey;
+        if (localPublicKey == null) {
+            synchronized (TMCGSecretKey.class) {
+                localPublicKey = publicKey;
+                if (localPublicKey == null) {
+                    publicKey = localPublicKey = new TMCGPublicKey(this);
+                }
+            }
+        }
+
+        return localPublicKey;
     }
 
     private boolean isAllMatch(final byte[] a, final byte value) {
@@ -453,10 +431,6 @@ public class TMCGSecretKey implements SecretKey {
         }
 
         return true;
-    }
-
-    private TMCGPublicKey makePublicKey(TMCGSecretKey secretKey) {
-        return new TMCGPublicKey(secretKey);
     }
 
     // pre-compute non-persistent values
