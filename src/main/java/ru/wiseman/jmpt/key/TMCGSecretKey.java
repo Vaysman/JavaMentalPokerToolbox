@@ -13,8 +13,6 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGSecretKey implements SecretKey {
-    public static final BigInteger BIG_INTEGER_8 = BigInteger.valueOf(8);
-    public static final BigInteger BIG_INTEGER_2 = BigInteger.valueOf(2);
     private String name;
     private String email;
     private String type;

@@ -1,7 +1,6 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.pqc.math.linearalgebra.BigIntUtils;
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 
 import java.io.ByteArrayInputStream;
@@ -15,11 +14,8 @@ import java.security.Security;
 import java.util.Random;
 
 public class Utils {
-    public static final BigInteger FOUR = BigInteger.valueOf(4L);
-    public static final BigInteger THREE = BigInteger.valueOf(3);
-    public static final BigInteger ONE = BigInteger.ONE;
-    public static final BigInteger EIGHT = BigInteger.valueOf(8);
-    public static final BigInteger FIVE = BigInteger.valueOf(5);
+    private static final BigInteger BIG_INTEGER_3 = BigInteger.valueOf(3);
+    private static final BigInteger BIG_INTEGER_4 = BigInteger.valueOf(4L);
     private static Random random = new SecureRandom();
 
     public static byte[] h(String s) {
@@ -96,7 +92,7 @@ public class Utils {
         BigInteger n = p.multiply(q);
 
 
-        if(g.equals(ONE)) {
+        if(g.equals(BigInteger.ONE)) {
             // single square roots
             BigInteger root_p = IntegerFunctions.ressol(a, p);
             BigInteger root_q = IntegerFunctions.ressol(a, q);
@@ -151,7 +147,7 @@ public class Utils {
         BigInteger result;
         do {
             result = BigInteger.probablePrime(size, random);
-        } while (!result.mod(FOUR).equals(THREE));
+        } while (!result.mod(BIG_INTEGER_4).equals(BIG_INTEGER_3));
 
         return result;
     }

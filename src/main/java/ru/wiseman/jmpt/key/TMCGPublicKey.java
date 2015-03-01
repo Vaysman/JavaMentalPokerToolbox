@@ -14,8 +14,6 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 public class TMCGPublicKey implements PublicKey {
-    public static final BigInteger BIG_INTEGER_2 = BigInteger.valueOf(2);
-    public static final BigInteger BIG_INTEGER_5 = BigInteger.valueOf(5);
     private BigInteger m;
     private BigInteger y;
     private String name;
