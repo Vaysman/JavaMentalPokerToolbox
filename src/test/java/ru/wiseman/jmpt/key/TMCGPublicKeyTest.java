@@ -56,9 +56,11 @@ public class TMCGPublicKeyTest {
     @Test
     @Ignore
     public void testEncrypt() throws Exception {
-        String clearText = "12233344445555566666";
-        TMCGSecretKey secretKey = new TMCGSecretKey("Name", "Email", 768, false);
+//        String clearText = "12233344445555566666";
+        String clearText = "I never finish anyth";
+                TMCGSecretKey secretKey = new TMCGSecretKey("Name", "Email", 768, false);
         TMCGPublicKey publicKey = new TMCGPublicKey(secretKey);
+        System.out.println(publicKey.encrypt(clearText));
 
         assertEquals(clearText, new String(secretKey.decrypt(publicKey.encrypt(clearText))));
     }

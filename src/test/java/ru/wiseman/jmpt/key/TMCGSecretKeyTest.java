@@ -7,12 +7,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import ru.wiseman.jmpt.SchindelhauerTMCG;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigInteger;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -23,25 +21,11 @@ public class TMCGSecretKeyTest {
     private static final int KEY_SIZE_2048 = 2048;
     private static final String ANY_STRING = "any string";
     private static final String ANY_STRING2 = "another any string";
-    private static final String SECRET_KEY_COMPATIBILITY_TEST = loadStringifiedKey("secret_key_with_nizk_import_from_libTMCG.txt");
-    private static final String SECRET_KEY = loadStringifiedKey("secret_key_without_nizk_with_small_modulus.txt");
+    private static final String SECRET_KEY_COMPATIBILITY_TEST = TestUtil.loadStringifiedKey("secret_key_with_nizk_import_from_libTMCG.txt");
+    private static final String SECRET_KEY = TestUtil.loadStringifiedKey("secret_key_without_nizk_with_small_modulus.txt");
 
     @Mock
     private TMCGPublicKey publicKey;
-
-    private static String loadStringifiedKey(final String name) {
-        BufferedReader key = new BufferedReader(
-                new InputStreamReader(
-                        Thread.currentThread().getContextClassLoader().getResourceAsStream("ru/wiseman/jmpt/key/" + name)
-                )
-        );
-
-        try {
-            return key.readLine().trim();
-        } catch (IOException e) {
-            return "";
-        }
-    }
 
     @Before
     public void setUp() throws Exception {
@@ -131,7 +115,6 @@ public class TMCGSecretKeyTest {
     @Test
     public void check_improperSecretKey_returnsFalse() throws Exception {
         TMCGSecretKey key = new TMCGSecretKey("", "", 768, false);
-        System.out.println(key.toString());
     }
 
     @Test
@@ -144,7 +127,7 @@ public class TMCGSecretKeyTest {
 
     @Test
     public void allGetters_preparedKey_returnsCorrectData() throws Exception {
-        TMCGSecretKey secretKey = TMCGSecretKey.importKey(loadStringifiedKey("prepared_secret_key.txt"));
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(TestUtil.loadStringifiedKey("prepared_secret_key.txt"));
 
         assertThat(secretKey.getName(), is("Alice"));
         assertThat(secretKey.getEmail(), is("alice@example.com"));
@@ -153,6 +136,40 @@ public class TMCGSecretKeyTest {
         assertThat(secretKey.getY(), is(new BigInteger("11")));
         assertThat(secretKey.getNizk(), is("nzk^16^128^128^"));
         assertThat(secretKey.getSig(), is("sig|ID8^ibhnizpi|2t9grlxzrvz76oj77g82d0zncujcrqlskaz2empm7xb23zlpyh6v2nw5dim0ylu79wi2x00qk2bvv4fwztt0dacokmkosoatd4bxf5zw28dgh0hlwlxz5iktaeoijpwgwk8y40g7wnx95ibhnizpi|"));
+    }
+
+    @Test
+    public void sign_emptyString_returnsSignature() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        assertThat(secretKey.sign(""), is(startsWith("sig|ID8^uuc8jmxe|")));
+    }
+
+    @Test
+    public void sign_string_returnsSignature() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+
+        assertThat(secretKey.sign("string"), is(startsWith("sig|ID8^uuc8jmxe|")));
+    }
+
+    @Test
+    public void sign_differentString_returnsDifferentSignature() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+        String signature1 = secretKey.sign("string1");
+        String signature2 = secretKey.sign("string2");
+
+        assertThat(signature1, is(not(signature2)));
+    }
+
+    @Test
+    public void sign_differentSignatureSameKey_haveSameKeyID() throws Exception {
+        TMCGSecretKey secretKey = TMCGSecretKey.importKey(SECRET_KEY);
+        String signature1 = secretKey.sign("string1");
+        String signature2 = secretKey.sign("string2");
+        int start = signature1.indexOf("ID");
+        int end = signature1.indexOf("|", start);
+
+        assertThat(signature1.substring(start, end), is(signature2.substring(start, end)));
     }
 
     @Test

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -54,56 +55,62 @@ public class TMCGSecretKey implements SecretKey {
 
     public static TMCGSecretKey importKey(String key) {
         TMCGSecretKey secretKey = new TMCGSecretKey();
-        StringTokenizer st = new StringTokenizer(key, "|", false);
+        String tokens[] = key.split("\\|");
+        String errorMessage = "Unknown error";
 
-        // check magic
-        if (!(st.hasMoreElements() && st.nextToken().equals("sec"))) {
-            throw new ImportKeyException("Wrong magic");
-        }
+        try {
+            // check magic
+            errorMessage = "Wrong magic";
+            if (!tokens[0].equals("sec")) {
+                throw new ImportKeyException(errorMessage);
+            }
 
-        // name
-        if (!(st.hasMoreTokens() && (secretKey.name = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read name");
-        }
+            // name
+            errorMessage = "Can't read name";
+            secretKey.name = tokens[1];
 
-        // email
-        if (!(st.hasMoreTokens() && (secretKey.email = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read email");
-        }
+            // email
+            errorMessage = "Can't read email";
+            secretKey.email = tokens[2];
 
-        // type
-        if (!(st.hasMoreTokens() && (secretKey.type = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read type");
-        }
+            // type
+            errorMessage = "Can't read type";
+            secretKey.type = tokens[3];
 
-        // m
-        if (!(st.hasMoreTokens() && (secretKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read modulus");
-        }
+            try {
+                // m
+                errorMessage = "Can't read modulus";
+                secretKey.m = new BigInteger(tokens[4], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
 
-        // y
-        if (!(st.hasMoreTokens() && (secretKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read y");
-        }
+                // y
+                errorMessage = "Can't read y";
+                secretKey.y = new BigInteger(tokens[5], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
 
-        // p
-        if (!(st.hasMoreTokens() && (secretKey.p = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read p");
-        }
+                // p
+                errorMessage = "Can't read p";
+                secretKey.p = new BigInteger(tokens[6], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
 
-        // q
-        if (!(st.hasMoreTokens() && (secretKey.q = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
-            throw new ImportKeyException("Can't read q");
-        }
+                // q
+                errorMessage = "Can't read q";
+                secretKey.q = new BigInteger(tokens[7], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+            } catch (NumberFormatException ex) {
+                throw new ImportKeyException(errorMessage, ex);
+            }
 
-        // NIZK
-        if (!(st.hasMoreTokens() && (secretKey.nizk = st.nextToken()) != null)) {
-            throw new ImportKeyException("Can't read nzik");
-        }
+            // NIZK
+            errorMessage = "Can't read nizk";
+            if ((secretKey.nizk = tokens[8]).isEmpty()) {
+                throw new ImportKeyException("NIZK proof can't be empty");
+            }
 
-        // sig
-        if (!(st.hasMoreTokens() && (secretKey.sig = st.nextToken("\n").substring(1)) != null)) {
-            throw new ImportKeyException("Can't read signature");
+            // sig
+            errorMessage = "Can't read signature";
+            secretKey.sig =String.join("|", Arrays.copyOfRange(tokens, 9, tokens.length)) + "|";
+            if (secretKey.sig.length() < 10) {
+                throw new ImportKeyException("Signature can't be empty");
+            }
+        } catch (NoSuchElementException ex) {
+            throw new ImportKeyException(errorMessage, ex);
         }
 
         // pre-compute non-persistent values
