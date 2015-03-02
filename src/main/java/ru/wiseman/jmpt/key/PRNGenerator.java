@@ -1,7 +1,7 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
-import ru.wiseman.jmpt.SchindelhauerTMCG;
+import ru.wiseman.jmpt.Consts;
 
 import java.math.BigInteger;
 
@@ -14,9 +14,9 @@ public class PRNGenerator {
         this.m = m;
         mnsize = m.bitLength() / 8;
         seed = new StringBuilder();
-        seed.append(m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE))
+        seed.append(m.toString(Consts.TMCG_MPZ_IO_BASE))
                 .append("^")
-                .append(y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE));
+                .append(y.toString(Consts.TMCG_MPZ_IO_BASE));
     }
 
     public BigInteger nextCoprime() {
@@ -43,7 +43,7 @@ public class PRNGenerator {
         byte[] mn = Utils.g(input, mnsize);
         random = Utils.mpzImport(mn);
         random = random.mod(m);
-        seed.append(random.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE));
+        seed.append(random.toString(Consts.TMCG_MPZ_IO_BASE));
         return random;
     }
 }

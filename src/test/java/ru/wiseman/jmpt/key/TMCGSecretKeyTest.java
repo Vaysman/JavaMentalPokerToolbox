@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import ru.wiseman.jmpt.SchindelhauerTMCG;
+import ru.wiseman.jmpt.Consts;
 
 import java.math.BigInteger;
 
@@ -30,7 +30,7 @@ public class TMCGSecretKeyTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        when(publicKey.keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE)).thenReturn("ID8^12345678");
+        when(publicKey.keyId(Consts.TMCG_KEYID_SIZE)).thenReturn("ID8^12345678");
     }
 
     @Test
@@ -137,7 +137,7 @@ public class TMCGSecretKeyTest {
 
         key.keyId();
 
-        verify(publicKey, atLeastOnce()).keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
+        verify(publicKey, atLeastOnce()).keyId(Consts.TMCG_KEYID_SIZE);
     }
 
     @Test

@@ -1,8 +1,8 @@
 package ru.wiseman.jmpt.key;
 
 import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
+import ru.wiseman.jmpt.Consts;
 import ru.wiseman.jmpt.ImportException;
-import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -65,12 +65,12 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         // m
-        if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+        if (!(st.hasMoreTokens() && (publicKey.m = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) != null)) {
             throw new ImportException("Can't read modulus");
         }
 
         // y
-        if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+        if (!(st.hasMoreTokens() && (publicKey.y = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) != null)) {
             throw new ImportException("Can't read y");
         }
 
@@ -112,8 +112,8 @@ public class TMCGPublicKey implements PublicKey {
 
         // check self-signature
         String data = name + "|" + email + "|" + type + "|" +
-                m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" +
-                y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
+                m.toString(Consts.TMCG_MPZ_IO_BASE) + "|" +
+                y.toString(Consts.TMCG_MPZ_IO_BASE) + "|" + nizk + "|";
 
         if (!verify(data, sig)) {
             return false;
@@ -162,7 +162,7 @@ public class TMCGPublicKey implements PublicKey {
             PRNGenerator generator = new PRNGenerator(m, y);
 
             // get security parameter of STAGE1
-            if ((stage1_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE1) {
+            if ((stage1_size = Integer.parseInt(st.nextToken())) < Consts.TMCG_KEY_NIZK_STAGE1) {
                 return false;
             }
 
@@ -171,7 +171,7 @@ public class TMCGPublicKey implements PublicKey {
                 foo = generator.nextCoprime();
 
                 // read NIZK proof
-                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                if ((bar = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) == null) {
                     return false;
                 }
 
@@ -184,7 +184,7 @@ public class TMCGPublicKey implements PublicKey {
 
             // get security parameter of STAGE2
             // check security constraint of STAGE2
-            if ((stage2_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE2) {
+            if ((stage2_size = Integer.parseInt(st.nextToken())) < Consts.TMCG_KEY_NIZK_STAGE2) {
                 return false;
             }
 
@@ -193,7 +193,7 @@ public class TMCGPublicKey implements PublicKey {
                 foo = generator.nextCoprime();
 
                 // read NIZK proof
-                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                if ((bar = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) == null) {
                     return false;
                 }
 
@@ -217,7 +217,7 @@ public class TMCGPublicKey implements PublicKey {
 
             // get security parameter of STAGE3
             // check security constraint of STAGE3
-            if ((stage3_size = Integer.parseInt(st.nextToken())) < SchindelhauerTMCG.TMCG_KEY_NIZK_STAGE3) {
+            if ((stage3_size = Integer.parseInt(st.nextToken())) < Consts.TMCG_KEY_NIZK_STAGE3) {
                 return false;
             }
 
@@ -226,7 +226,7 @@ public class TMCGPublicKey implements PublicKey {
                 foo = generator.nextNQR();
 
                 // read NIZK proof
-                if ((bar = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) == null) {
+                if ((bar = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) == null) {
                     return false;
                 }
 
@@ -251,18 +251,18 @@ public class TMCGPublicKey implements PublicKey {
     public String encrypt(String value) {
         BigInteger vdata;
 
-        int rabin_s2 = 2 * SchindelhauerTMCG.TMCG_SAEP_S0;
+        int rabin_s2 = 2 * Consts.TMCG_SAEP_S0;
         int rabin_s1 = (m.bitLength() / 8) - rabin_s2;
 
         assert (rabin_s2 < (m.bitLength() / 16));
         assert (rabin_s2 < rabin_s1);
-        assert (SchindelhauerTMCG.TMCG_SAEP_S0 < (m.bitLength() / 32));
+        assert (Consts.TMCG_SAEP_S0 < (m.bitLength() / 32));
 
         byte[] r = new byte[rabin_s1];
         random.nextBytes(r);
 
         byte[] mt = new byte[rabin_s2];
-        int length = Math.min(value.getBytes().length, SchindelhauerTMCG.TMCG_SAEP_S0);
+        int length = Math.min(value.getBytes().length, Consts.TMCG_SAEP_S0);
         System.arraycopy(value.getBytes(), 0, mt, 0, length);
         byte[] g12 = Utils.g(r, rabin_s2);
         for (int i = 0; i < rabin_s2; i++) {
@@ -278,17 +278,17 @@ public class TMCGPublicKey implements PublicKey {
         }
         vdata = Utils.mpzImport(buff.toByteArray());
         vdata = vdata.pow(2).mod(m);
-        return "enc|" + keyId() + "|" + vdata.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|";
+        return "enc|" + keyId() + "|" + vdata.toString(Consts.TMCG_MPZ_IO_BASE) + "|";
     }
 
     @Override
     public String fingerprint() {
-        int hash_size = SchindelhauerTMCG.RMD160_HASH_SIZE;
+        int hash_size = Consts.RMD160_HASH_SIZE;
 
         // compute the digest
         String data = "pub|" + name + "|" + email + "|" + type +
-                "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
-                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
+                "|" + m.toString(Consts.TMCG_MPZ_IO_BASE) +
+                "|" + y.toString(Consts.TMCG_MPZ_IO_BASE) +
                 "|" + nizk + "|" + sig;
         byte[] digest = Utils.h(data);
 
@@ -336,7 +336,7 @@ public class TMCGPublicKey implements PublicKey {
 
     @Override
     public String keyId() {
-        return keyId(SchindelhauerTMCG.TMCG_KEYID_SIZE);
+        return keyId(Consts.TMCG_KEYID_SIZE);
     }
 
     @Override
@@ -384,8 +384,8 @@ public class TMCGPublicKey implements PublicKey {
 
     @Override
     public String toString() {
-        return "pub|" + name + "|" + email + "|" + type + "|" + m.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) +
-                "|" + y.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE) + "|" + nizk +
+        return "pub|" + name + "|" + email + "|" + type + "|" + m.toString(Consts.TMCG_MPZ_IO_BASE) +
+                "|" + y.toString(Consts.TMCG_MPZ_IO_BASE) + "|" + nizk +
                 "|" + sig;
     }
 
@@ -408,7 +408,7 @@ public class TMCGPublicKey implements PublicKey {
         }
 
         // value
-        if (!(st.hasMoreTokens() && (foo = new BigInteger(st.nextToken(), SchindelhauerTMCG.TMCG_MPZ_IO_BASE)) != null)) {
+        if (!(st.hasMoreTokens() && (foo = new BigInteger(st.nextToken(), Consts.TMCG_MPZ_IO_BASE)) != null)) {
             throw new ImportException("Can't read signature");
         }
 
@@ -416,25 +416,25 @@ public class TMCGPublicKey implements PublicKey {
         final int mnsize = m.bitLength() / 8;
 
         assert m.bitLength() > mnsize * 8;
-        assert mnsize > SchindelhauerTMCG.RMD160_HASH_SIZE + SchindelhauerTMCG.TMCG_PRAB_K0;
+        assert mnsize > Consts.RMD160_HASH_SIZE + Consts.TMCG_PRAB_K0;
 
         foo = foo.pow(2).mod(m);
-        byte[] w = new byte[SchindelhauerTMCG.RMD160_HASH_SIZE], r = new byte[SchindelhauerTMCG.TMCG_PRAB_K0];
-        int gammaSize = mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE - SchindelhauerTMCG.TMCG_PRAB_K0;
+        byte[] w = new byte[Consts.RMD160_HASH_SIZE], r = new byte[Consts.TMCG_PRAB_K0];
+        int gammaSize = mnsize - Consts.RMD160_HASH_SIZE - Consts.TMCG_PRAB_K0;
         byte[] gamma = new byte[gammaSize];
         ByteArrayInputStream buff = new ByteArrayInputStream(foo.toByteArray());
         Utils.skipSignByte(buff);
-        if (buff.read(w, 0, SchindelhauerTMCG.RMD160_HASH_SIZE) < SchindelhauerTMCG.RMD160_HASH_SIZE) {
+        if (buff.read(w, 0, Consts.RMD160_HASH_SIZE) < Consts.RMD160_HASH_SIZE) {
             throw new VerifyException("Not enough byte for hash sum");
         }
-        if (buff.read(r, 0, SchindelhauerTMCG.TMCG_PRAB_K0) < SchindelhauerTMCG.TMCG_PRAB_K0) {
+        if (buff.read(r, 0, Consts.TMCG_PRAB_K0) < Consts.TMCG_PRAB_K0) {
             throw new VerifyException("Not enough byte for random data");
         }
         if (buff.read(gamma, 0, gammaSize) < gammaSize) {
             throw new VerifyException("Not enough byte for gamma");
         }
-        byte[] g12 = Utils.g(w, mnsize - SchindelhauerTMCG.RMD160_HASH_SIZE);
-        for (int i = 0; i < SchindelhauerTMCG.TMCG_PRAB_K0; i++) {
+        byte[] g12 = Utils.g(w, mnsize - Consts.RMD160_HASH_SIZE);
+        for (int i = 0; i < Consts.TMCG_PRAB_K0; i++) {
             r[i] ^= g12[i];
         }
         ByteArrayOutputStream mr = new ByteArrayOutputStream();
@@ -445,7 +445,7 @@ public class TMCGPublicKey implements PublicKey {
             return false;
         }
         byte[] w2 = Utils.h(mr.toByteArray());
-        if (Arrays.equals(w, w2) && Arrays.equals(gamma, Arrays.copyOfRange(g12, SchindelhauerTMCG.TMCG_PRAB_K0, g12.length))) {
+        if (Arrays.equals(w, w2) && Arrays.equals(gamma, Arrays.copyOfRange(g12, Consts.TMCG_PRAB_K0, g12.length))) {
             return true;
         }
 

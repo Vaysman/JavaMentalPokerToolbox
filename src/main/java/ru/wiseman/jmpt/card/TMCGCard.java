@@ -1,7 +1,7 @@
 package ru.wiseman.jmpt.card;
 
+import ru.wiseman.jmpt.Consts;
 import ru.wiseman.jmpt.ImportException;
-import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.math.BigInteger;
 
@@ -40,7 +40,7 @@ public class TMCGCard implements Card {
         int tokenIndex = 3;
         for (int i = 0; i < players; i++) {
             for (int j = 0; j < bits; j++) {
-                z[i][j] = new BigInteger(tokens[tokenIndex], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+                z[i][j] = new BigInteger(tokens[tokenIndex], Consts.TMCG_MPZ_IO_BASE);
                 tokenIndex++;
             }
         }
@@ -59,7 +59,7 @@ public class TMCGCard implements Card {
         card.append(bits).append("|");
         for (BigInteger[] bits : z) {
             for (BigInteger bit : bits) {
-                card.append(bit.toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
+                card.append(bit.toString(Consts.TMCG_MPZ_IO_BASE)).append("|");
             }
         }
         return card.toString();

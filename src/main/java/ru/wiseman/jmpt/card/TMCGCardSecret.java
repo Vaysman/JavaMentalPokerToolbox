@@ -1,7 +1,7 @@
 package ru.wiseman.jmpt.card;
 
+import ru.wiseman.jmpt.Consts;
 import ru.wiseman.jmpt.ImportException;
-import ru.wiseman.jmpt.SchindelhauerTMCG;
 
 import java.math.BigInteger;
 
@@ -40,9 +40,9 @@ public class TMCGCardSecret implements CardSecret {
         int tokenIndex = 3;
         for (int i = 0; i < players; i++) {
             for (int j = 0; j < bits; j++) {
-                r[i][j] = new BigInteger(tokens[tokenIndex], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+                r[i][j] = new BigInteger(tokens[tokenIndex], Consts.TMCG_MPZ_IO_BASE);
                 tokenIndex++;
-                b[i][j] = new BigInteger(tokens[tokenIndex], SchindelhauerTMCG.TMCG_MPZ_IO_BASE);
+                b[i][j] = new BigInteger(tokens[tokenIndex], Consts.TMCG_MPZ_IO_BASE);
                 tokenIndex++;
             }
         }
@@ -61,8 +61,8 @@ public class TMCGCardSecret implements CardSecret {
         card.append(bits).append("|");
         for (int i = 0; i < players; i++) {
             for (int j = 0; j < bits; j++) {
-                card.append(r[i][j].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
-                card.append(b[i][j].toString(SchindelhauerTMCG.TMCG_MPZ_IO_BASE)).append("|");
+                card.append(r[i][j].toString(Consts.TMCG_MPZ_IO_BASE)).append("|");
+                card.append(b[i][j].toString(Consts.TMCG_MPZ_IO_BASE)).append("|");
             }
         }
 
