@@ -181,4 +181,8 @@ public class Utils {
     public static boolean isNotCoungruent(BigInteger a, BigInteger b, BigInteger m) {
         return !isCoungruent(a, b, m);
     }
+
+    public static BigInteger mpz_srandomm(BigInteger modulus) {
+        return new BigInteger(modulus.bitLength(), random).mod(modulus);
+    }
 }

@@ -20,6 +20,15 @@ public class TMCGCardSecret implements CardSecret {
         allocate();
     }
 
+    public BigInteger getBit(int player, int bit) {
+        return b[player][bit];
+    }
+
+    @Override
+    public int getPlayersCount() {
+        return players;
+    }
+
     public void importCard(String s) {
         String tokens[] = s.split("\\|");
 
@@ -52,6 +61,14 @@ public class TMCGCardSecret implements CardSecret {
         this.players = players;
         this.bits = bits;
         allocate();
+    }
+
+    public void setBit(int player, int bit, BigInteger val) {
+        this.b[player][bit] = val;
+    }
+
+    public void setRandom(int player, int bit, BigInteger r) {
+        this.r[player][bit] = r;
     }
 
     @Override
