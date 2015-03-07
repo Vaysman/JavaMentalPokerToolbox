@@ -20,6 +20,14 @@ public class TMCGCard implements Card {
         allocate();
     }
 
+    public int getBitsCount() {
+        return bits;
+    }
+
+    public int getPlayersCount() {
+        return players;
+    }
+
     public void importCard(String s) {
         String tokens[] = s.split("\\|");
 
@@ -50,6 +58,10 @@ public class TMCGCard implements Card {
         this.players = players;
         this.bits = bits;
         allocate();
+    }
+
+    public void setZ(int player, int bit, BigInteger val) {
+        z[player][bit] = val;
     }
 
     @Override

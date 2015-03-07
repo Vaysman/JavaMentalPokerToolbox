@@ -91,8 +91,28 @@ public class SchindelhauerTMCG {
         throw new NotImplementedException();
     }
 
-    public void TMCG_CreateOpenCard(TMCGCard c, final PublicKeyRing ring, int type) {
-        throw new NotImplementedException();
+    public TMCGCard TMCG_CreateOpenCard(final PublicKeyRing ring, int type) {
+        assert type < maxCardType;
+        assert ring.size() == players;
+
+        TMCGCard c = new TMCGCard(players, bits);
+
+        for (int w = 0; w < bits; w++) {
+            BigInteger z = BigInteger.ONE;
+            if((type & 1) > 0) {
+                z = ring.getKeyForPlayer(0).getY();
+            }
+            type >>= 1;
+            c.setZ(0, w, z);
+        }
+
+        for (int k = 1; k < players; k++) {
+            for (int w = 0; w < bits; w++) {
+                c.setZ(0, w, BigInteger.ONE);
+            }
+        }
+
+        return c;
     }
 
     public void TMCG_CreateOpenCard(VTMFCard c, BarnettSmartVTMF_dlog vtmf, int type) {
