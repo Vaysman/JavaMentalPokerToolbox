@@ -18,29 +18,21 @@ public class Utils {
     private static final BigInteger BIG_INTEGER_4 = BigInteger.valueOf(4L);
     private static Random random = new SecureRandom();
 
-    public static byte[] h(String s) {
-        return h(s.getBytes());
+    public static boolean compareByteArrays(byte[] a, int startA, byte[] b, int startB, int length) {
+        if (a.length - startA < length) {
+            throw new IndexOutOfBoundsException("First array too short");
+        }
+        if (b.length - startB < length) {
+            throw new IndexOutOfBoundsException("Second array too short");
+        }
+        for (int i = 0; i < length; i++) {
+            if (a[startA + i] != b[startB + i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    public static byte[] h(byte[] data) {
-        setBcProvider();
-        byte[] result;
-        try {
-            MessageDigest md = MessageDigest.getInstance("RIPEMD160");
-            md.update(data);
-            result = md.digest();
-        } catch (NoSuchAlgorithmException e) {
-            result = new byte[0];
-        }
-        return result;
-    }
-
-    private static void setBcProvider() {
-        if (Security.getProvider("BC") == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-    }
-    
     public static byte[] g(String s, int osize) {
         return g(s.getBytes(), osize);
     }
@@ -75,13 +67,85 @@ public class Utils {
         return output;
     }
 
+    public static byte[] h(String s) {
+        return h(s.getBytes());
+    }
+
+    public static byte[] h(byte[] data) {
+        setBcProvider();
+        byte[] result;
+        try {
+            MessageDigest md = MessageDigest.getInstance("RIPEMD160");
+            md.update(data);
+            result = md.digest();
+        } catch (NoSuchAlgorithmException e) {
+            result = new byte[0];
+        }
+        return result;
+    }
+
+    public static boolean isCoungruent(BigInteger a, BigInteger b, BigInteger m) {
+        return a.subtract(b).mod(m).equals(BigInteger.ZERO);
+    }
+
+    public static boolean isNotCoungruent(BigInteger a, BigInteger b, BigInteger m) {
+        return !isCoungruent(a, b, m);
+    }
+
+    public static BigInteger maskValue(BigInteger z, BigInteger r, BigInteger y, BigInteger m, boolean bit, boolean timingAttackProtection) {
+        // always protect from timing attack
+        BigInteger zz;
+        // compute zz = z * r^2 * y^b (mod m)
+        zz = r.pow(2).mod(m).multiply(z).mod(m);
+        BigInteger tim = zz.multiply(y).mod(m);
+        if (bit) {
+            zz = tim;
+        }
+
+        return zz;
+    }
+
+    public static BigInteger mpzImport(byte[] data) {
+        return new BigInteger(1, data);
+    }
 
     public static boolean mpz_qrmn_p(BigInteger foo, BigInteger p, BigInteger q, BigInteger m) {
         return IntegerFunctions.jacobi(foo, p) == 1 && IntegerFunctions.jacobi(foo, q) == 1;
     }
 
-    public static BigInteger mpzImport(byte[] data) {
-        return new BigInteger(1, data);
+    // prime congruent 3 modulo 4
+    public static BigInteger mpz_sprime3mod4(int size, int iterations) {
+        BigInteger result;
+        do {
+            result = BigInteger.probablePrime(size, random);
+        } while (!result.mod(BIG_INTEGER_4).equals(BIG_INTEGER_3));
+
+        return result;
+    }
+
+    public static BigInteger[] mpz_sqrtmn_fast_all(BigInteger a, BigInteger p, BigInteger q, BigInteger n,
+                                                   BigInteger up, BigInteger vq, BigInteger pa1d4, BigInteger qa1d4) {
+        BigInteger root_p, root_q;
+        // fast single square roots for Blum Integer
+        root_p = a.modPow(pa1d4, p);
+        root_q = a.modPow(qa1d4, q);
+
+        // construct common square root
+        BigInteger[] roots = new BigInteger[4];
+        roots[0] = root_q;
+        roots[1] = root_p;
+        roots[2] = root_q;
+        roots[3] = root_p;
+        roots[0] = roots[0].multiply(up);
+        roots[1] = roots[1].multiply(vq);
+        roots[0] = roots[0].add(roots[1]).mod(n);
+        roots[1] = n.subtract(roots[0]);
+        roots[2] = roots[2].negate().multiply(up);
+        roots[3] = roots[3].multiply(vq);
+        roots[2] = roots[2].add(roots[3]).mod(n);
+        roots[3] = n.subtract(roots[2]);
+
+        return roots;
     }
 
     public static BigInteger mpz_sqrtmn_r(BigInteger a, BigInteger p, BigInteger q) {
@@ -92,7 +156,7 @@ public class Utils {
         BigInteger n = p.multiply(q);
 
 
-        if(g.equals(BigInteger.ONE)) {
+        if (g.equals(BigInteger.ONE)) {
             // single square roots
             BigInteger root_p = IntegerFunctions.ressol(a, p);
             BigInteger root_q = IntegerFunctions.ressol(a, q);
@@ -117,54 +181,14 @@ public class Utils {
         }
     }
 
-    public static BigInteger[] mpz_sqrtmn_fast_all(BigInteger a, BigInteger p, BigInteger q, BigInteger n,
-                                                BigInteger up, BigInteger vq, BigInteger pa1d4, BigInteger qa1d4)  {
-        BigInteger root_p, root_q;
-        // fast single square roots for Blum Integer
-        root_p = a.modPow(pa1d4, p);
-        root_q = a.modPow(qa1d4, q);
-
-        // construct common square root
-        BigInteger[] roots = new BigInteger[4];
-        roots[0] = root_q;
-        roots[1] = root_p;
-        roots[2] = root_q;
-        roots[3] = root_p;
-        roots[0] = roots[0].multiply(up);
-        roots[1] = roots[1].multiply(vq);
-        roots[0] = roots[0].add(roots[1]).mod(n);
-        roots[1] = n.subtract(roots[0]);
-        roots[2] = roots[2].negate().multiply(up);
-        roots[3] = roots[3].multiply(vq);
-        roots[2] = roots[2].add(roots[3]).mod(n);
-        roots[3] = n.subtract(roots[2]);
-
-        return roots;
+    public static BigInteger mpz_srandomm(BigInteger modulus) {
+        return new BigInteger(modulus.bitLength(), random).mod(modulus);
     }
 
-    // prime congruent 3 modulo 4
-    public static BigInteger mpz_sprime3mod4(int size, int iterations) {
-        BigInteger result;
-        do {
-            result = BigInteger.probablePrime(size, random);
-        } while (!result.mod(BIG_INTEGER_4).equals(BIG_INTEGER_3));
-
-        return result;
-    }
-
-    public static boolean compareByteArrays(byte[] a, int startA, byte[] b, int startB, int length) {
-        if(a.length - startA < length) {
-            throw new IndexOutOfBoundsException("First array too short");
+    private static void setBcProvider() {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(new BouncyCastleProvider());
         }
-        if(b.length - startB < length) {
-            throw new IndexOutOfBoundsException("Second array too short");
-        }
-        for (int i = 0; i < length; i++) {
-            if(a[startA + i] != b[startB + i]) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public static void skipSignByte(ByteArrayInputStream buff) {
@@ -172,17 +196,5 @@ public class Utils {
         if (buff.read() != 0) {
             buff.reset();
         }
-    }
-
-    public static boolean isCoungruent(BigInteger a, BigInteger b, BigInteger m) {
-        return a.subtract(b).mod(m).equals(BigInteger.ZERO);
-    }
-
-    public static boolean isNotCoungruent(BigInteger a, BigInteger b, BigInteger m) {
-        return !isCoungruent(a, b, m);
-    }
-
-    public static BigInteger mpz_srandomm(BigInteger modulus) {
-        return new BigInteger(modulus.bitLength(), random).mod(modulus);
     }
 }

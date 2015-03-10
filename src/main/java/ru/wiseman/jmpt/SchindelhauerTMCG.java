@@ -36,55 +36,7 @@ public class SchindelhauerTMCG {
     }
 
     public TMCGCardSecret TMCG_CreateCardSecret(final PublicKeyRing ring, int index) {
-        assert ring.size() == players;
-
-        TMCGCardSecret cs = new TMCGCardSecret(players, bits);
-
-        for (int k = 0; k < players; k++) {
-            for (int w = 0; w < bits; w++) {
-                // choose uniformly at random a number r \in Z^*_m
-                BigInteger m = ring.getModulusForPlayer(k);
-                BigInteger r;
-
-                do {
-                    r = Utils.mpz_srandomm(m);
-                } while (!r.gcd(m).equals(BigInteger.ONE));
-                cs.setRandom(k, w, r);
-
-                // choose uniformly at random a bit b \in {0, 1}
-                // or set it initially to zero in the index-th row
-                BigInteger bit = randomBit();
-                if (k == index) {
-                    bit = BigInteger.ZERO;
-                }
-
-                cs.setBit(k, w, bit);
-            }
-        }
-
-        // XOR b_{ij} with i \neq index (keep type of this card)
-        for (int k = 0; k < players; k++) {
-            if (k == index) {
-                continue;
-            }
-            for (int w = 0; w < bits; w++) {
-                // we can use == because BigInteger immutable
-                if (cs.getBit(index, w) == BigInteger.ONE) {
-                    if (cs.getBit(k, w) == BigInteger.ONE) {
-                        cs.setBit(index, w, BigInteger.ZERO);
-                    } else {
-                        cs.setBit(index, w, BigInteger.ONE);
-                    }
-                } else {
-                    if (cs.getBit(k, w) == BigInteger.ONE) {
-                        cs.setBit(index, w, BigInteger.ONE);
-                    } else {
-                        cs.setBit(index, w, BigInteger.ZERO);
-                    }
-                }
-            }
-        }
-        return cs;
+        return new TMCGCardSecret(players, bits, ring, index);
     }
 
     public void TMCG_CreateCardSecret(VTMFCardSecret cs, BarnettSmartVTMF_dlog vtmf) {
@@ -121,6 +73,7 @@ public class SchindelhauerTMCG {
 
     public void TMCG_CreatePrivateCard(TMCGCard c, TMCGCardSecret cs, final PublicKeyRing ring,
                                        int index, int type) {
+
         throw new NotImplementedException();
     }
 
@@ -139,14 +92,14 @@ public class SchindelhauerTMCG {
         throw new NotImplementedException();
     }
 
-    public void TMCG_MaskCard(final TMCGCard c, TMCGCard cc, final TMCGCardSecret cs,
-                              final PublicKeyRing ring, boolean TimingAttackProtection) {
-        throw new NotImplementedException();
+    public TMCGCard TMCG_MaskCard(final TMCGCard c, final TMCGCardSecret cs,
+                              final PublicKeyRing ring, boolean timingAttackProtection) {
+        return c.mask(cs, ring, timingAttackProtection);
     }
 
-    public void TMCG_MaskCard(final TMCGCard c, TMCGCard cc, final TMCGCardSecret cs,
+    public TMCGCard TMCG_MaskCard(final TMCGCard c, final TMCGCardSecret cs,
                               final PublicKeyRing ring) {
-        TMCG_MaskCard(c, cc, cs, ring, true);
+        return TMCG_MaskCard(c, cs, ring, true);
     }
 
     public void TMCG_MaskCard(final VTMFCard c, VTMFCard cc, final VTMFCardSecret cs,
@@ -355,10 +308,6 @@ public class SchindelhauerTMCG {
 
          */
 
-    }
-
-    private BigInteger randomBit() {
-        return random.nextBoolean() ? BigInteger.ONE : BigInteger.ZERO;
     }
 
     public class BarnettSmartVTMF_dlog {

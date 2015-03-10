@@ -1,0 +1,13 @@
+@startuml
+activate Player0
+Player0 -> Deck: createDeck
+Deck --> Player0
+
+loop N times
+Player0 -> Card: createOpenCard
+Card --> Player0: OpenCard
+Player0 -> Deck: addCard
+end
+
+deactivate Player0
+@enduml

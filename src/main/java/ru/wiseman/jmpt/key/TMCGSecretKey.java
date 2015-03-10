@@ -9,10 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.StringTokenizer;
+import java.util.*;
 
 public class TMCGSecretKey implements SecretKey {
     private String email;
@@ -457,5 +454,10 @@ public class TMCGSecretKey implements SecretKey {
         gcdext_vq = gcdext[2].multiply(q);
         pa1d4 = p.add(BigInteger.ONE).shiftRight(2);
         qa1d4 = q.add(BigInteger.ONE).shiftRight(2);
+    }
+
+
+    public Object getO() {
+        return "test";
     }
 }
