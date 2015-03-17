@@ -10,10 +10,10 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 public class TMCGCardSecret implements CardSecret {
-    private boolean[][] b;
+    protected boolean[][] b;
     private int bits;
     private int players;
-    private BigInteger[][] r;
+    protected BigInteger[][] r;
     private Random random = new SecureRandom();
 
     private TMCGCardSecret() {
